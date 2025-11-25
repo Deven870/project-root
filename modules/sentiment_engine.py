@@ -2,11 +2,15 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import torch
-
-import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from textblob import TextBlob
+try:
+    from textblob import TextBlob
+    _TEXTBLOB_AVAILABLE = True
+except Exception:
+    # TextBlob may not be installed; fall back to simpler analysis
+    TextBlob = None
+    _TEXTBLOB_AVAILABLE = False
 import requests
 from datetime import datetime, timedelta
 
@@ -14,20 +18,47 @@ from datetime import datetime, timedelta
 # FinBERT for financial sentiment
 # ------------------------------
 finbert_model_name = "yiyanghkust/finbert-tone"
-tokenizer_finbert = AutoTokenizer.from_pretrained(finbert_model_name)
-model_finbert = AutoModelForSequenceClassification.from_pretrained(finbert_model_name)
+tokenizer_finbert = None
+model_finbert = None
 labels = ["negative", "neutral", "positive"]
 
 def analyze_finbert(text):
-    inputs = tokenizer_finbert(text, return_tensors="pt", truncation=True, padding=True)
-    with torch.no_grad():
-        outputs = model_finbert(**inputs)
-        probs = F.softmax(outputs.logits, dim=-1)
-    return dict(zip(labels, probs.tolist()[0]))
+    global tokenizer_finbert, model_finbert
+    if tokenizer_finbert is None or model_finbert is None:
+        try:
+            tokenizer_finbert = AutoTokenizer.from_pretrained(finbert_model_name)
+            model_finbert = AutoModelForSequenceClassification.from_pretrained(finbert_model_name)
+        except Exception as e:
+            print(f"Warning: FinBERT load failed: {e}")
+            return {"negative": 0.0, "neutral": 1.0, "positive": 0.0}
+    try:
+        inputs = tokenizer_finbert(text, return_tensors="pt", truncation=True, padding=True)
+        with torch.no_grad():
+            outputs = model_finbert(**inputs)
+            probs = F.softmax(outputs.logits, dim=-1)
+        return dict(zip(labels, probs.tolist()[0]))
+    except Exception as e:
+        print(f"FinBERT analysis error: {e}")
+        return {"negative": 0.0, "neutral": 1.0, "positive": 0.0}
 
 def analyze_general_sentiment(text):
-    blob = TextBlob(text)
-    p = blob.sentiment.polarity
+    if _TEXTBLOB_AVAILABLE:
+        try:
+            blob = TextBlob(text)
+            p = blob.sentiment.polarity
+        except Exception:
+            p = 0.0
+    else:
+        # Very small rule-based fallback
+        t = str(text).lower()
+        pos = any(w in t for w in ["gain","profit","rise","up","strong","good","positive","outperform"])
+        neg = any(w in t for w in ["loss","drop","down","weak","fail","negative","decline","miss"])
+        if pos and not neg:
+            p = 0.5
+        elif neg and not pos:
+            p = -0.5
+        else:
+            p = 0.0
     if p > 0.05:
         return {"negative": 0, "neutral": 0, "positive": 1}
     elif p < -0.05:
@@ -38,7 +69,11 @@ def analyze_general_sentiment(text):
 def analyze_hybrid_sentiment(text):
     fin = analyze_finbert(text)
     gen = analyze_general_sentiment(text)
-    hybrid = {k: round(0.7*fin[k] + 0.3*gen[k], 4) for k in labels}
+    try:
+        hybrid = {k: round(0.7*fin.get(k, 0) + 0.3*gen.get(k, 0), 4) for k in labels}
+    except Exception:
+        # If fin or gen returns a scalar, fallback to combining as proportions
+        hybrid = {"positive": 0.0, "neutral": 1.0, "negative": 0.0}
     return hybrid
 
 # ------------------------------

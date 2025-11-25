@@ -26,7 +26,8 @@ def predict_intraday(data: pd.DataFrame):
 
     price_diff = abs(close_last - open_last)
     avg_price = (close_last + open_last) / 2
-    confidence = min(round(price_diff / avg_price, 2), 1.0)
+    # Use a higher precision for confidence and avoid premature rounding to 2 decimals
+    confidence = min(price_diff / max(avg_price, 1e-6), 1.0)
 
     return trend, confidence
 
@@ -53,5 +54,5 @@ def predict_long_term(data: pd.DataFrame):
     else:
         trend = "Neutral"
 
-    confidence = min(round(abs(avg_close - avg_open) / avg_open, 2), 1.0)
+    confidence = min(abs(avg_close - avg_open) / max(abs(avg_open), 1e-6), 1.0)
     return trend, confidence
