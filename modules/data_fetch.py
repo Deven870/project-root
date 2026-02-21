@@ -1,8 +1,11 @@
+import os
 import yfinance as yf
 import requests
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 
-NEWS_API_KEY = "fbba6b423b7e426a810eb007ad444242"  
+load_dotenv()
+NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")  
 
 def fetch_stock_data(ticker, period="7d", interval="1d"):
     """

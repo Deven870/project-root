@@ -15,9 +15,8 @@ mplfinance
 joblib
 tqdm
 lxml
-pandas
-numpy
-requests
-scikit-learn
-yfinance
 nltk
+python-dotenv
+textblob
+xgboost
+seaborn

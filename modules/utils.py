@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 # Import ML + sentiment modules (if available)
 try:
     from modules.predictive_ml import predict_intraday, predict_long_term
-except ImportError:
+except (ImportError, OSError, Exception):
     # fallback: return a plausible confidence in [0,1]
-    def predict_intraday(data): return "Bullish", float(np.random.uniform(0.6, 0.9))
-    def predict_long_term(data): return "Bearish", float(np.random.uniform(0.5, 0.8))
+    def predict_intraday(data, **kwargs): return "Bullish", float(np.random.uniform(0.6, 0.9))
+    def predict_long_term(data, **kwargs): return "Bearish", float(np.random.uniform(0.5, 0.8))
 
 try:
     from modules.sentiment_engine import analyze_hybrid_sentiment, get_news_for_stock
@@ -119,23 +119,9 @@ def get_stock_predictions(ticker, invest_amount=None, horizon="intraday"):
     Predicts stock trend and confidence using ML (or fallback dummy logic)
     Also calculates sentiment from news.
     """
-    try:
-        # Select timing based on horizon
-        if horizon.lower() == 'intraday':
-            data = fetch_price_data(ticker, period='5d', interval='1h')
-        elif horizon.lower() == 'swing':
-            data = fetch_price_data(ticker, period='1mo', interval='1d')
-        else:
-            data = fetch_price_data(ticker, period='6mo', interval='1d')
-        if horizon.lower() == "intraday":
-            trend, confidence = predict_intraday(data)
-        else:
-            trend, confidence = predict_long_term(data)
-    except Exception as e:
-        print("Prediction error:", e)
-        trend, confidence = "N/A", 0
+    data = pd.DataFrame()
 
-    # News sentiment
+    # News sentiment (compute first so we can pass it to ML)
     try:
         headlines = get_news_for_stock(ticker)
         if headlines and isinstance(headlines, list):
@@ -146,11 +132,29 @@ def get_stock_predictions(ticker, invest_amount=None, horizon="intraday"):
                 "negative": np.mean([s["negative"] for s in sentiments]),
             }
         else:
-            # No headlines -> neutral sentiment
             avg_sentiment = {"positive": 0.0, "neutral": 1.0, "negative": 0.0}
     except Exception as e:
         print("Sentiment error:", e)
         avg_sentiment = {"positive": 0.0, "neutral": 1.0, "negative": 0.0}
+
+    # Sentiment score for ML features: positive - negative (range [-1, 1])
+    sentiment_score = avg_sentiment["positive"] - avg_sentiment["negative"]
+
+    try:
+        # Select timing based on horizon
+        if horizon.lower() == 'intraday':
+            data = fetch_price_data(ticker, period='5d', interval='1h')
+        elif horizon.lower() == 'swing':
+            data = fetch_price_data(ticker, period='1mo', interval='1d')
+        else:
+            data = fetch_price_data(ticker, period='6mo', interval='1d')
+        if horizon.lower() == "intraday":
+            trend, confidence = predict_intraday(data, sentiment_score=sentiment_score)
+        else:
+            trend, confidence = predict_long_term(data, sentiment_score=sentiment_score)
+    except Exception as e:
+        print("Prediction error:", e)
+        trend, confidence = "N/A", 0
 
     # Ensure confidence is a Python float (handle numpy scalars and pandas Series)
     try:
@@ -208,6 +212,7 @@ def get_stock_predictions(ticker, invest_amount=None, horizon="intraday"):
         "predicted_price": predicted_price,
         "predicted_return_pct": predicted_return_pct,
         "stop_loss": stop_loss,
+        "price_data": data,
     }
 
 
@@ -437,10 +442,4 @@ def fetch_price_data(ticker, period='1mo', interval='1d'):
         return data
     except Exception as e:
         print(f"Error fetching {ticker} data: {e}")
-        return pd.DataFrame({
-            "Open": np.random.uniform(100, 200, 5),
-            "Close": np.random.uniform(100, 200, 5),
-            "High": np.random.uniform(100, 200, 5),
-            "Low": np.random.uniform(100, 200, 5),
-            "Volume": np.random.randint(1000, 5000, 5),
-        })
+        return pd.DataFrame()

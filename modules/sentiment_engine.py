@@ -79,7 +79,10 @@ def analyze_hybrid_sentiment(text):
 # ------------------------------
 # News fetching (from NewsAPI)
 # ------------------------------
-NEWS_API_KEY = "fbba6b423b7e426a810eb007ad444242"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
 
 def get_news_for_stock(stock_ticker, from_days=7, max_articles=20):
     today = datetime.now()

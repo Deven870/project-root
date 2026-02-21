@@ -1,23 +1,142 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
 from modules.utils import (
     get_stock_predictions,
     get_portfolio_allocation,
     get_investment_advice,
     get_nse_stock_list,
+    fetch_price_data,
 )
 
 # =========================
 # 🧩 Streamlit Setup
 # =========================
-st.set_page_config(page_title="Smart Trading Assistant", page_icon="📊", layout="wide")
-
-st.sidebar.title("📈 Navigation")
-page = st.sidebar.radio("Go to", ["Trading Dashboard", "Portfolio Suggestions"])
+st.set_page_config(page_title="Digitrader — Smart Trading Assistant", page_icon="🚀", layout="wide")
 
 # =========================
-# ⚙️ Load NSE Stock List
+# 🎨 Custom CSS for eye-catching UI
 # =========================
+st.markdown("""
+<style>
+/* ---- Glassmorphism cards ---- */
+div[data-testid="stMetric"] {
+    background: linear-gradient(135deg, rgba(30,30,60,0.85), rgba(50,50,100,0.7));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 18px 22px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    backdrop-filter: blur(8px);
+}
+div[data-testid="stMetric"] label {
+    color: #a0aec0 !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    font-size: 1.6rem !important;
+    font-weight: 700 !important;
+}
+
+/* ---- Sidebar glow ---- */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%) !important;
+}
+section[data-testid="stSidebar"] .stRadio label {
+    color: #e0e0e0 !important;
+}
+
+/* ---- Glowing buttons ---- */
+div.stButton > button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white !important;
+    border: none;
+    border-radius: 12px;
+    padding: 0.6rem 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+div.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+}
+
+/* ---- Section dividers ---- */
+hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(102,126,234,0.5), transparent);
+    margin: 1.5rem 0;
+}
+
+/* ---- Trend badge ---- */
+.trend-badge {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+.trend-bullish { background: linear-gradient(135deg, #00b09b, #96c93d); color: #fff; }
+.trend-bearish { background: linear-gradient(135deg, #fc4a1a, #f7b733); color: #fff; }
+.trend-neutral { background: linear-gradient(135deg, #606c88, #3f4c6b); color: #fff; }
+
+/* ---- Info cards ---- */
+.info-card {
+    background: linear-gradient(135deg, rgba(40,40,80,0.8), rgba(60,60,120,0.6));
+    border-radius: 14px;
+    padding: 20px;
+    border-left: 4px solid #667eea;
+    margin: 10px 0;
+}
+
+/* ---- Animated header ---- */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.main-title {
+    background: linear-gradient(270deg, #667eea, #764ba2, #f093fb, #667eea);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 4s ease infinite;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0;
+}
+.sub-title {
+    color: #a0aec0;
+    font-size: 1rem;
+    margin-top: 0;
+}
+
+/* ---- Portfolio table styling ---- */
+.dataframe th {
+    background: rgba(102, 126, 234, 0.3) !important;
+    color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# =========================
+# 🔄 Cached Helpers
+# =========================
+@st.cache_data(ttl=300, show_spinner="Fetching predictions...")
+def cached_predictions(ticker, invest_amount, horizon):
+    return get_stock_predictions(ticker, invest_amount, horizon)
+
+@st.cache_data(ttl=300, show_spinner="Generating portfolio...")
+def cached_portfolio(total_amount, horizon, allocation_mode, top_n, max_weight_pct):
+    return get_portfolio_allocation(total_amount, horizon, allocation_mode=allocation_mode, top_n=top_n, max_weight_pct=max_weight_pct)
+
 @st.cache_data
 def load_stock_list():
     try:
@@ -28,27 +147,47 @@ def load_stock_list():
 stock_list = load_stock_list()
 
 # =========================
-# 📊 PAGE 1: TRADING DASHBOARD
+# 🧭 Sidebar
 # =========================
-if page == "Trading Dashboard":
-    st.title("📊 Trading Dashboard")
+with st.sidebar:
+    st.markdown("## 🚀 **Digitrader**")
+    st.caption("Smart Trading Assistant")
+    st.markdown("---")
+    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results"], label_visibility="collapsed")
+    st.markdown("---")
+    st.markdown("##### ⏰ Market Hours")
+    st.caption("NSE: Mon–Fri, 9:15 AM – 3:30 PM IST")
+    st.markdown("---")
+    st.markdown(
+        "<div style='text-align:center; opacity:0.5; font-size:0.75rem;'>v2.0 · Built with Streamlit</div>",
+        unsafe_allow_html=True
+    )
+
+
+# =====================================================================
+# 📊 PAGE 1: TRADING DASHBOARD
+# =====================================================================
+if page == "📊 Trading Dashboard":
+    st.markdown('<p class="main-title">Trading Dashboard</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Real-time predictions, sentiment analysis & actionable insights</p>', unsafe_allow_html=True)
 
     if not stock_list:
         st.error("⚠️ Unable to fetch NSE stocks. Please check your internet or the NSE API.")
         st.stop()
 
-    # --- Stock Selection
-    stock_symbol = st.selectbox("Select Stock", stock_list, index=0)
-    investment_amount = st.number_input("💰 Investment Amount (₹)", min_value=1000, step=500)
-    horizon = st.radio("⏳ Investment Horizon", ["Intraday", "Swing", "Long-Term"])
+    # --- Controls row
+    col_stock, col_amount, col_horizon = st.columns([2, 1.5, 1.5])
+    with col_stock:
+        stock_symbol = st.selectbox("🏢 Select Stock", stock_list, index=0)
+    with col_amount:
+        investment_amount = st.number_input("💰 Investment (₹)", min_value=1000, value=10000, step=500)
+    with col_horizon:
+        horizon = st.selectbox("⏳ Horizon", ["Intraday", "Swing", "Long-Term"])
 
     st.markdown("---")
 
-    # --- Stock Predictions & Sentiment
-    st.subheader(f"📈 Predictions & Market Sentiment for {stock_symbol}")
-
     try:
-        prediction_data = get_stock_predictions(stock_symbol, investment_amount, horizon)
+        prediction_data = cached_predictions(stock_symbol, investment_amount, horizon)
         trend = prediction_data["trend"]
         confidence = prediction_data["confidence"]
         sentiment = prediction_data["sentiment"]
@@ -56,132 +195,837 @@ if page == "Trading Dashboard":
         predicted_price = prediction_data.get("predicted_price")
         predicted_return_pct = prediction_data.get("predicted_return_pct", 0.0)
         stop_loss = prediction_data.get("stop_loss")
+        price_data = prediction_data.get("price_data")
 
-        st.markdown(f"**🔹 Current Price:** ₹{current_price:.2f}")
-        st.markdown(f"**🔹 Predicted Trend:** {trend}")
-        if predicted_price is not None:
-            st.markdown(f"**🔹 Predicted Price:** ₹{predicted_price:.2f}")
-            st.markdown(f"**🔹 Predicted Return (%):** {predicted_return_pct:.2f}%")
-        if stop_loss is not None:
-            st.markdown(f"**🔹 Suggested Stop Loss:** ₹{stop_loss:.2f}")
-        # `confidence` from the prediction code is a float in [0, 1]; convert to percent for display
+        # --- Confidence as percent
         try:
             confidence_pct = float(confidence) * 100
         except Exception:
             confidence_pct = 0.0
-        # display small non-zero confidences as <0.01% instead of 0.00%
-        if 0 < confidence_pct < 0.01:
-            conf_display = "<0.01%"
-        else:
-            conf_display = f"{confidence_pct:.2f}%"
-        st.markdown(f"**🔹 Confidence:** {conf_display}")
 
-        # show a progress bar [0..100]
-        prog_val = max(0, min(100, int(confidence_pct)))
-        if prog_val == 0 and confidence_pct > 0:
-            prog_val = 1
-        st.progress(prog_val)
-
-        st.markdown(
-            f"🧠 **Sentiment:** "
-            f"Positive: {sentiment['positive']*100:.1f}%, "
-            f"Neutral: {sentiment['neutral']*100:.1f}%, "
-            f"Negative: {sentiment['negative']*100:.1f}%"
-        )
-
-        # =========================
-        # Chart: actual close series; annotate beginning, current, and predicted
-        try:
-            import plotly.graph_objects as go
-            df_chart = data.copy()
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=df_chart.index, y=df_chart['Close'], mode='lines', name='Actual Close'))
-            # Beginning marker
-            fig.add_trace(go.Scatter(x=[df_chart.index[0]], y=[df_chart['Close'].iloc[0]], mode='markers', name='Beginning', marker=dict(color='blue', size=8)))
-            # Current marker
-            fig.add_trace(go.Scatter(x=[df_chart.index[-1]], y=[df_chart['Close'].iloc[-1]], mode='markers', name='Current', marker=dict(color='orange', size=10)))
-            # Predicted price marker at last timestamp (indicates expected target)
+        # ===== Metric Cards Row =====
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("Current Price", f"₹{current_price:,.2f}")
+        with m2:
             if predicted_price is not None:
-                fig.add_trace(go.Scatter(x=[df_chart.index[-1]], y=[predicted_price], mode='markers', name='Predicted', marker=dict(color='green', size=10)))
-                # add a dashed horizontal line for predicted price
-                fig.add_hline(y=predicted_price, line=dict(dash='dash', color='green'), annotation_text='Predicted Price')
-            st.plotly_chart(fig, use_container_width=True)
+                delta_val = predicted_price - current_price
+                st.metric("Predicted Price", f"₹{predicted_price:,.2f}", delta=f"₹{delta_val:+,.2f}")
+            else:
+                st.metric("Predicted Price", "N/A")
+        with m3:
+            st.metric("Expected Return", f"{predicted_return_pct:+.2f}%")
+        with m4:
+            if stop_loss is not None:
+                st.metric("Stop Loss", f"₹{stop_loss:,.2f}")
+            else:
+                st.metric("Stop Loss", "N/A")
+
+        st.markdown("")
+
+        # ===== Trend Badge + Confidence Gauge =====
+        col_trend, col_gauge, col_sentiment = st.columns([1, 1.5, 1.5])
+
+        with col_trend:
+            trend_lower = trend.lower() if trend else "neutral"
+            if "bull" in trend_lower:
+                badge_class = "trend-bullish"
+                trend_icon = "📈"
+            elif "bear" in trend_lower:
+                badge_class = "trend-bearish"
+                trend_icon = "📉"
+            else:
+                badge_class = "trend-neutral"
+                trend_icon = "➡️"
+            st.markdown(f"""
+                <div style="text-align:center; margin-top:10px;">
+                    <p style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Predicted Trend</p>
+                    <span class="trend-badge {badge_class}">{trend_icon} {trend}</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+        with col_gauge:
+            # Confidence Gauge Chart
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=confidence_pct,
+                number={"suffix": "%", "font": {"size": 28, "color": "white"}},
+                title={"text": "Confidence", "font": {"size": 14, "color": "#a0aec0"}},
+                gauge={
+                    "axis": {"range": [0, 100], "tickcolor": "#555"},
+                    "bar": {"color": "#667eea"},
+                    "bgcolor": "rgba(30,30,60,0.5)",
+                    "steps": [
+                        {"range": [0, 33], "color": "rgba(252,74,26,0.3)"},
+                        {"range": [33, 66], "color": "rgba(247,183,51,0.3)"},
+                        {"range": [66, 100], "color": "rgba(0,176,155,0.3)"},
+                    ],
+                    "threshold": {
+                        "line": {"color": "white", "width": 2},
+                        "thickness": 0.8,
+                        "value": confidence_pct,
+                    },
+                },
+            ))
+            fig_gauge.update_layout(
+                height=200, margin=dict(t=40, b=10, l=30, r=30),
+                paper_bgcolor="rgba(0,0,0,0)", font={"color": "white"}
+            )
+            st.plotly_chart(fig_gauge, use_container_width=True)
+
+        with col_sentiment:
+            # Sentiment Donut Chart
+            sent_labels = ["Positive", "Neutral", "Negative"]
+            sent_values = [
+                sentiment["positive"] * 100,
+                sentiment["neutral"] * 100,
+                sentiment["negative"] * 100,
+            ]
+            sent_colors = ["#00b09b", "#667eea", "#fc4a1a"]
+            fig_donut = go.Figure(go.Pie(
+                labels=sent_labels, values=sent_values,
+                hole=0.55, marker=dict(colors=sent_colors),
+                textinfo="label+percent", textfont=dict(size=11, color="white"),
+                hoverinfo="label+percent",
+            ))
+            fig_donut.update_layout(
+                title=dict(text="Market Sentiment", font=dict(size=14, color="#a0aec0"), x=0.5),
+                height=220, margin=dict(t=45, b=10, l=10, r=10),
+                paper_bgcolor="rgba(0,0,0,0)", showlegend=False,
+                font={"color": "white"},
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+
+        st.markdown("---")
+
+        # ===== Candlestick Chart =====
+        st.markdown("#### 📊 Price Chart")
+        try:
+            if price_data is None or price_data.empty:
+                raise ValueError("No price data available")
+            df_chart = price_data.copy()
+
+            # Candlestick
+            fig_candle = go.Figure()
+
+            has_ohlc = all(c in df_chart.columns for c in ["Open", "High", "Low", "Close"])
+            if has_ohlc:
+                fig_candle.add_trace(go.Candlestick(
+                    x=df_chart.index,
+                    open=df_chart["Open"], high=df_chart["High"],
+                    low=df_chart["Low"], close=df_chart["Close"],
+                    name="OHLC",
+                    increasing_line_color="#00b09b", decreasing_line_color="#fc4a1a",
+                    increasing_fillcolor="#00b09b", decreasing_fillcolor="#fc4a1a",
+                ))
+            else:
+                fig_candle.add_trace(go.Scatter(
+                    x=df_chart.index, y=df_chart["Close"], mode="lines",
+                    name="Close", line=dict(color="#667eea", width=2),
+                ))
+
+            # Volume as bars on secondary axis
+            if "Volume" in df_chart.columns:
+                fig_candle.add_trace(go.Bar(
+                    x=df_chart.index, y=df_chart["Volume"],
+                    name="Volume", marker_color="rgba(102,126,234,0.2)",
+                    yaxis="y2",
+                ))
+
+            # Predicted price line
+            if predicted_price is not None:
+                fig_candle.add_hline(
+                    y=predicted_price,
+                    line=dict(dash="dash", color="#96c93d", width=1.5),
+                    annotation_text=f"Target ₹{predicted_price:,.2f}",
+                    annotation_font_color="#96c93d",
+                )
+
+            # Stop loss line
+            if stop_loss is not None:
+                fig_candle.add_hline(
+                    y=stop_loss,
+                    line=dict(dash="dot", color="#fc4a1a", width=1.5),
+                    annotation_text=f"Stop Loss ₹{stop_loss:,.2f}",
+                    annotation_font_color="#fc4a1a",
+                    annotation_position="bottom left",
+                )
+
+            fig_candle.update_layout(
+                height=480,
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(15,15,35,0.8)",
+                xaxis=dict(rangeslider=dict(visible=False)),
+                yaxis=dict(title="Price (₹)", side="left"),
+                yaxis2=dict(title="Volume", overlaying="y", side="right", showgrid=False, range=[0, df_chart.get("Volume", pd.Series([1])).max() * 4] if "Volume" in df_chart.columns else [0, 1]),
+                margin=dict(t=20, b=40, l=60, r=60),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                font=dict(color="#ccc"),
+            )
+            st.plotly_chart(fig_candle, use_container_width=True)
+
         except Exception as e:
             st.warning(f"Chart not available: {e}")
+
+        st.markdown("---")
+
+        # ===== Investment Advice =====
+        st.markdown("#### 💡 Investment Advice")
+        try:
+            advice_text = get_investment_advice(stock_symbol, horizon)
+            st.markdown(f"""
+                <div class="info-card">
+                    {advice_text}
+                </div>
+            """, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error: {e}")
+
     except Exception as e:
         st.error(f"Error fetching predictions: {e}")
 
     st.markdown("---")
-
-    # --- Investment Advice
-    st.subheader("💡 Investment Advice")
-    try:
-        advice_text = get_investment_advice(stock_symbol, horizon)
-        st.info(advice_text)
-    except Exception as e:
-        st.error(f"Error generating investment advice: {e}")
-
-    st.markdown("---")
-    st.caption("📊 Tip: Intraday = quick trades (<4h), Swing = few days, Long-term = steady growth.")
+    horizon_tips = {
+        "Intraday": "⚡ **Intraday** — Quick trades within market hours. Use tight stop-losses.",
+        "Swing": "🌊 **Swing** — Hold 2–10 days. Look for breakout patterns.",
+        "Long-Term": "🏛️ **Long-Term** — Buy and hold. Focus on fundamentals.",
+    }
+    st.caption(horizon_tips.get(horizon, ""))
 
 
-# =========================
+# =====================================================================
 # 💼 PAGE 2: PORTFOLIO SUGGESTIONS
-# =========================
-elif page == "Portfolio Suggestions":
-    st.title("💼 Portfolio Suggestions & Allocation")
+# =====================================================================
+elif page == "💼 Portfolio Suggestions":
+    st.markdown('<p class="main-title">Portfolio Builder</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">AI-powered diversified allocation across NSE stocks</p>', unsafe_allow_html=True)
 
-    total_amount = st.number_input("💰 Total Investment Amount (₹)", min_value=1000, step=500)
-    horizon = st.radio("Select Investment Horizon", ["Intraday", "Swing", "Long-Term"])
+    col_a, col_b = st.columns(2)
+    with col_a:
+        total_amount = st.number_input("💰 Total Investment (₹)", min_value=1000, value=50000, step=1000)
+        horizon = st.selectbox("⏳ Investment Horizon", ["Intraday", "Swing", "Long-Term"])
+    with col_b:
+        allocation_mode = st.selectbox("🔧 Allocation Strategy", ["Proportional", "Equal", "Risk-adjusted"], index=0)
+        col_cap, col_topn = st.columns(2)
+        with col_cap:
+            max_weight_pct = st.number_input("Max weight %", min_value=0.0, value=0.0, step=0.5, help="0 = no cap")
+        with col_topn:
+            show_top_n = st.number_input("Top N stocks", min_value=0, value=10, step=1, help="0 = all")
 
-    # Allocation controls
-    allocation_mode = st.selectbox("Allocation Mode", ["Proportional", "Equal", "Risk-adjusted"], index=0)
     allocation_mode_key = allocation_mode.lower().replace('-', '_')
-    max_weight_pct = st.number_input("Max allocation per stock (%) (0 for no cap)", min_value=0.0, value=0.0, step=0.5)
-    show_top_n = st.number_input("Show top N stocks (0 for all)", min_value=0, value=0, step=1)
 
     # Duration display
-    if horizon == "Intraday":
-        st.markdown("⏳ **Investment Duration:** Up to 4 Hours")
-    elif horizon == "Swing":
-        st.markdown("⏳ **Investment Duration:** 2–10 Days")
-    else:
-        st.markdown("⏳ **Investment Duration:** 1–6 Months")
+    duration_map = {
+        "Intraday": ("⚡ Up to 4 Hours", "rgba(252,74,26,0.15)"),
+        "Swing": ("🌊 2–10 Days", "rgba(247,183,51,0.15)"),
+        "Long-Term": ("🏛️ 1–6 Months", "rgba(0,176,155,0.15)"),
+    }
+    dur_text, dur_bg = duration_map.get(horizon, ("—", "transparent"))
+    st.markdown(f"""
+        <div style="background:{dur_bg}; border-radius:10px; padding:10px 20px; display:inline-block; margin:10px 0;">
+            <b>Investment Duration:</b> {dur_text}
+        </div>
+    """, unsafe_allow_html=True)
 
-    if st.button("📊 Generate Portfolio"):
+    st.markdown("")
+
+    if st.button("🚀 Generate Portfolio", use_container_width=True):
         try:
-            portfolio = get_portfolio_allocation(total_amount, horizon, allocation_mode=allocation_mode_key, top_n=(None if show_top_n==0 else int(show_top_n)), max_weight_pct=(None if max_weight_pct==0 else float(max_weight_pct)))
+            portfolio = cached_portfolio(
+                total_amount, horizon, allocation_mode_key,
+                (None if show_top_n == 0 else int(show_top_n)),
+                (None if max_weight_pct == 0 else float(max_weight_pct)),
+            )
             if portfolio:
                 df = pd.DataFrame(portfolio)
-                # sort by weight desc
                 df = df.sort_values(by="Weight (%)", ascending=False).reset_index(drop=True)
-                # show the full allocation table; `width='stretch'` replaces deprecated `use_container_width`
-                try:
-                    st.dataframe(df, width='stretch')
-                except Exception:
-                    # fallback
-                    st.dataframe(df)
 
                 total_profit = df["Expected Profit (₹)"].sum()
                 total_return_pct = (total_profit / total_amount) * 100
 
-                st.markdown(f"**💹 Total Expected Profit:** ₹{total_profit:,.2f}")
-                st.markdown(f"**📈 Expected Portfolio Return:** {total_return_pct:.2f}%")
-                st.caption("Allocation strategy: weights are proportional to each stock's expected return for the selected horizon.")
+                # ===== Summary Metrics =====
+                sm1, sm2, sm3, sm4 = st.columns(4)
+                with sm1:
+                    st.metric("Stocks Selected", len(df))
+                with sm2:
+                    st.metric("Total Investment", f"₹{total_amount:,.0f}")
+                with sm3:
+                    st.metric("Expected Profit", f"₹{total_profit:,.2f}", delta=f"{total_return_pct:+.2f}%")
+                with sm4:
+                    st.metric("Strategy", allocation_mode)
 
-                # Inform user if requested cap is smaller than allowable minimum (auto-adjusted)
+                st.markdown("")
+
+                # ===== Charts Row =====
+                chart_col1, chart_col2 = st.columns(2)
+
+                with chart_col1:
+                    # Pie chart — allocation by weight
+                    top_display = df.head(15)
+                    fig_pie = px.pie(
+                        top_display, values="Weight (%)", names="Stock",
+                        title="Portfolio Allocation",
+                        color_discrete_sequence=px.colors.sequential.Plasma_r,
+                        hole=0.4,
+                    )
+                    fig_pie.update_layout(
+                        template="plotly_dark",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        height=380,
+                        margin=dict(t=50, b=20, l=20, r=20),
+                        title_font=dict(size=14, color="#a0aec0"),
+                        font=dict(color="#ccc"),
+                    )
+                    st.plotly_chart(fig_pie, use_container_width=True)
+
+                with chart_col2:
+                    # Bar chart — expected return per stock
+                    top_bar = df.head(15).copy()
+                    colors = ["#00b09b" if r >= 0 else "#fc4a1a" for r in top_bar["Expected Return (%)"]]
+                    fig_bar = go.Figure(go.Bar(
+                        x=top_bar["Stock"], y=top_bar["Expected Return (%)"],
+                        marker_color=colors,
+                        text=[f"{r:.1f}%" for r in top_bar["Expected Return (%)"]],
+                        textposition="outside",
+                    ))
+                    fig_bar.update_layout(
+                        title=dict(text="Expected Return by Stock", font=dict(size=14, color="#a0aec0")),
+                        template="plotly_dark",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(15,15,35,0.8)",
+                        height=380,
+                        margin=dict(t=50, b=40, l=40, r=20),
+                        yaxis_title="Return (%)",
+                        font=dict(color="#ccc"),
+                    )
+                    st.plotly_chart(fig_bar, use_container_width=True)
+
+                st.markdown("---")
+
+                # ===== Data Table =====
+                st.markdown("#### 📋 Full Allocation Table")
+
+                # Color code the trend column
+                def style_trend(val):
+                    if val and "bull" in str(val).lower():
+                        return "color: #00b09b; font-weight: bold"
+                    elif val and "bear" in str(val).lower():
+                        return "color: #fc4a1a; font-weight: bold"
+                    return "color: #a0aec0"
+
+                styled_df = df.style.applymap(style_trend, subset=["Trend"])
+                st.dataframe(styled_df, use_container_width=True, height=400)
+
+                # Warning for cap adjustment
                 n_total = len(get_nse_stock_list())
                 if max_weight_pct and max_weight_pct > 0 and max_weight_pct < float(100 / max(1, n_total)):
-                    st.warning(f"The requested max cap ({max_weight_pct}%) is too small for {n_total} stocks; it was automatically adjusted to {round(100/n_total, 2)}%.")
+                    st.warning(f"Max cap ({max_weight_pct}%) was auto-adjusted to {round(100/n_total, 2)}%.")
             else:
                 st.warning("No portfolio recommendations available.")
         except Exception as e:
             st.error(f"Error generating portfolio: {e}")
 
-    st.info("📈 Tip: Intraday = high liquidity stocks, Long-term = blue-chip stable stocks.")
 
-# =========================
-# 🧾 FOOTER
-# =========================
+# =====================================================================
+# 🔍 PAGE 3: STOCK COMPARISON
+# =====================================================================
+elif page == "🔍 Stock Comparison":
+    st.markdown('<p class="main-title">Stock Comparison</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Compare multiple stocks side-by-side</p>', unsafe_allow_html=True)
+
+    selected_stocks = st.multiselect("Select stocks to compare (2–5)", stock_list, default=stock_list[:3] if len(stock_list) >= 3 else stock_list, max_selections=5)
+    horizon = st.selectbox("⏳ Horizon", ["Intraday", "Swing", "Long-Term"], key="compare_horizon")
+
+    if selected_stocks and len(selected_stocks) >= 2:
+        if st.button("⚡ Compare Stocks", use_container_width=True):
+            comparison_data = []
+            price_series = {}
+
+            progress = st.progress(0)
+            for i, stk in enumerate(selected_stocks):
+                try:
+                    pred = cached_predictions(stk, 10000, horizon)
+                    comparison_data.append({
+                        "Stock": stk,
+                        "Price (₹)": f"₹{pred['current_price']:,.2f}",
+                        "Predicted (₹)": f"₹{pred.get('predicted_price', 0):,.2f}" if pred.get("predicted_price") else "N/A",
+                        "Return (%)": round(pred.get("predicted_return_pct", 0), 2),
+                        "Trend": pred["trend"],
+                        "Confidence (%)": round(float(pred["confidence"]) * 100, 2),
+                        "Sentiment +": round(pred["sentiment"]["positive"] * 100, 1),
+                        "Sentiment -": round(pred["sentiment"]["negative"] * 100, 1),
+                    })
+                    pd_data = pred.get("price_data")
+                    if pd_data is not None and not pd_data.empty and "Close" in pd_data.columns:
+                        # Normalize to percentage change from first day
+                        close = pd_data["Close"].copy()
+                        close_norm = (close / close.iloc[0] - 1) * 100
+                        price_series[stk] = close_norm
+                except Exception:
+                    comparison_data.append({"Stock": stk, "Price (₹)": "Error", "Predicted (₹)": "—", "Return (%)": 0, "Trend": "N/A", "Confidence (%)": 0, "Sentiment +": 0, "Sentiment -": 0})
+                progress.progress((i + 1) / len(selected_stocks))
+            progress.empty()
+
+            comp_df = pd.DataFrame(comparison_data)
+
+            # ===== Comparison Metrics =====
+            cols = st.columns(len(selected_stocks))
+            for i, row in comp_df.iterrows():
+                with cols[i]:
+                    trend_lower = str(row["Trend"]).lower()
+                    if "bull" in trend_lower:
+                        delta_color = "normal"
+                    elif "bear" in trend_lower:
+                        delta_color = "inverse"
+                    else:
+                        delta_color = "off"
+                    st.metric(row["Stock"], row["Price (₹)"], delta=f"{row['Return (%)']}%", delta_color=delta_color)
+
+            st.markdown("---")
+
+            # ===== Normalized price comparison chart =====
+            if price_series:
+                fig_compare = go.Figure()
+                colors = ["#667eea", "#00b09b", "#fc4a1a", "#f7b733", "#764ba2"]
+                for idx, (stk, series) in enumerate(price_series.items()):
+                    fig_compare.add_trace(go.Scatter(
+                        x=series.index, y=series.values,
+                        mode="lines", name=stk,
+                        line=dict(color=colors[idx % len(colors)], width=2.5),
+                    ))
+                fig_compare.update_layout(
+                    title="Normalized Price Performance (%)",
+                    template="plotly_dark",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(15,15,35,0.8)",
+                    height=420,
+                    margin=dict(t=50, b=40, l=60, r=20),
+                    yaxis_title="Change (%)",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    font=dict(color="#ccc"),
+                )
+                st.plotly_chart(fig_compare, use_container_width=True)
+
+            # ===== Comparison Table =====
+            st.markdown("#### 📋 Comparison Table")
+
+            def style_comparison_trend(val):
+                if val and "bull" in str(val).lower():
+                    return "color: #00b09b; font-weight: bold"
+                elif val and "bear" in str(val).lower():
+                    return "color: #fc4a1a; font-weight: bold"
+                return ""
+
+            st.dataframe(
+                comp_df.style.applymap(style_comparison_trend, subset=["Trend"]),
+                use_container_width=True,
+            )
+    else:
+        st.info("Select at least 2 stocks to compare.")
+
+
+# =====================================================================
+# 📄 PAGE 4: RESEARCH RESULTS
+# =====================================================================
+elif page == "📄 Research Results":
+    st.markdown('<p class="main-title">Research Results</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">ML model evaluation, ablation study, and backtesting for paper</p>', unsafe_allow_html=True)
+
+    # Check if results exist
+    import os, glob
+    results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🤖 Model Comparison", "🧪 Ablation Study", "📊 Feature Importance",
+        "💰 Trading Simulation", "⚡ Run Experiment"
+    ])
+
+    # --- Tab 5: Run experiment live
+    with tab5:
+        st.markdown("#### ⚡ Run Live Experiment")
+        st.caption("Train all models on a single stock and see results instantly.")
+
+        exp_stock = st.selectbox("Select Stock", stock_list, index=0, key="exp_stock")
+        exp_horizon = st.selectbox("Horizon", ["Intraday", "Long-Term"], key="exp_horizon")
+
+        if st.button("🚀 Run Experiment", use_container_width=True):
+            with st.spinner("Training Random Forest, XGBoost, LSTM... (this may take 30-60 seconds)"):
+                try:
+                    from modules.predictive_ml import train_all_models
+                    from modules.backtester import (
+                        compute_classification_metrics, compute_regression_metrics,
+                        get_confusion_matrix, get_feature_importance, simulate_trading,
+                        run_ablation_study
+                    )
+                    from modules.feature_engineering import get_feature_columns
+
+                    # Fetch data
+                    if exp_horizon == "Intraday":
+                        exp_data = fetch_price_data(exp_stock, period="5d", interval="1h")
+                    else:
+                        exp_data = fetch_price_data(exp_stock, period="6mo", interval="1d")
+
+                    if exp_data is None or exp_data.empty:
+                        st.error("No data available for this stock.")
+                    else:
+                        # Get sentiment
+                        try:
+                            from modules.sentiment_engine import analyze_hybrid_sentiment, analyze_finbert, analyze_general_sentiment, get_news_for_stock
+                            headlines = get_news_for_stock(exp_stock)
+                            if headlines:
+                                fin_scores = [analyze_finbert(h["title"]) for h in headlines[:10]]
+                                gen_scores = [analyze_general_sentiment(h["title"]) for h in headlines[:10]]
+                                hyb_scores = [analyze_hybrid_sentiment(h["title"]) for h in headlines[:10]]
+                                sent_scores = {
+                                    "finbert": float(np.mean([s["positive"] - s["negative"] for s in fin_scores])),
+                                    "textblob": float(np.mean([s["positive"] - s["negative"] for s in gen_scores])),
+                                    "hybrid": float(np.mean([s["positive"] - s["negative"] for s in hyb_scores])),
+                                }
+                            else:
+                                sent_scores = {"finbert": 0.0, "textblob": 0.0, "hybrid": 0.0}
+                        except Exception:
+                            sent_scores = {"finbert": 0.0, "textblob": 0.0, "hybrid": 0.0}
+
+                        st.session_state["exp_sent_scores"] = sent_scores
+
+                        # Train all models
+                        results = train_all_models(exp_data, sentiment_score=sent_scores["hybrid"])
+
+                        if results is None:
+                            st.error("Not enough data to train models (need 30+ data points).")
+                        else:
+                            st.session_state["exp_results"] = results
+                            st.session_state["exp_stock_name"] = exp_stock
+                            st.session_state["exp_data"] = exp_data
+
+                            # Run ablation study
+                            ablation_df = run_ablation_study(exp_data, sent_scores)
+                            st.session_state["exp_ablation"] = ablation_df
+
+                            st.success(f"Experiment complete for {exp_stock}! Switch tabs to see results.")
+
+                except Exception as e:
+                    st.error(f"Experiment failed: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+
+    # Helper: check session state 
+    exp_results = st.session_state.get("exp_results")
+    exp_stock_name = st.session_state.get("exp_stock_name", "")
+
+    # --- Tab 1: Model Comparison
+    with tab1:
+        st.markdown("#### 🤖 Model Comparison")
+
+        # Try loading from saved CSVs first
+        cls_file = None
+        reg_file = None
+        if os.path.exists(results_dir):
+            cls_files = sorted(glob.glob(os.path.join(results_dir, "classification_metrics_*.csv")))
+            reg_files = sorted(glob.glob(os.path.join(results_dir, "regression_metrics_*.csv")))
+            if cls_files:
+                cls_file = cls_files[-1]
+            if reg_files:
+                reg_file = reg_files[-1]
+
+        # Source selection
+        data_source = "live" if exp_results else ("saved" if cls_file else None)
+
+        if data_source == "live" and exp_results:
+            st.info(f"Showing results for **{exp_stock_name}** (live experiment)")
+
+            from modules.backtester import compute_classification_metrics, compute_regression_metrics
+
+            cls_rows = []
+            reg_rows = []
+            for mname, mdata in exp_results["models"].items():
+                y_true_cls = exp_results["y_cls_test"][:len(mdata["cls_pred"])]
+                y_true_reg = exp_results["y_reg_test"][:len(mdata["reg_pred"])]
+                cls_rows.append(compute_classification_metrics(y_true_cls, mdata["cls_pred"], mname))
+                reg_rows.append(compute_regression_metrics(y_true_reg, mdata["reg_pred"], mname))
+
+            cls_df = pd.DataFrame(cls_rows)
+            reg_df = pd.DataFrame(reg_rows)
+
+        elif data_source == "saved" and cls_file:
+            st.info("Showing saved experiment results")
+            cls_df = pd.read_csv(cls_file)
+            reg_df = pd.read_csv(reg_file) if reg_file else pd.DataFrame()
+        else:
+            st.warning("No results yet. Go to the **⚡ Run Experiment** tab first, or run `python run_experiments.py` from terminal.")
+            cls_df = pd.DataFrame()
+            reg_df = pd.DataFrame()
+
+        if not cls_df.empty:
+            # Classification metrics chart
+            st.markdown("##### Classification Performance")
+            metrics_to_plot = ["Accuracy", "Precision", "Recall", "F1-Score"]
+            available_metrics = [m for m in metrics_to_plot if m in cls_df.columns]
+
+            if "Stock" in cls_df.columns:
+                agg_cls = cls_df.groupby("Model")[available_metrics].mean().reset_index()
+            else:
+                agg_cls = cls_df
+
+            fig_cls = go.Figure()
+            colors = ["#667eea", "#00b09b", "#fc4a1a", "#f7b733"]
+            for i, metric in enumerate(available_metrics):
+                fig_cls.add_trace(go.Bar(
+                    name=metric, x=agg_cls["Model"], y=agg_cls[metric],
+                    marker_color=colors[i % len(colors)],
+                    text=[f"{v:.3f}" for v in agg_cls[metric]],
+                    textposition="outside",
+                ))
+            fig_cls.update_layout(
+                barmode="group", template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(15,15,35,0.8)",
+                height=400, margin=dict(t=30, b=40),
+                yaxis_title="Score", yaxis_range=[0, 1.1],
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+                font=dict(color="#ccc"),
+            )
+            st.plotly_chart(fig_cls, use_container_width=True)
+
+            st.dataframe(agg_cls, use_container_width=True)
+
+        if not reg_df.empty:
+            st.markdown("##### Regression Performance")
+            if "Stock" in reg_df.columns:
+                agg_reg = reg_df.groupby("Model")[["MAE", "RMSE", "Directional Acc"]].mean().reset_index()
+            else:
+                agg_reg = reg_df
+
+            col_r1, col_r2 = st.columns(2)
+            with col_r1:
+                fig_rmse = px.bar(agg_reg, x="Model", y="RMSE", color="Model",
+                    title="RMSE by Model", color_discrete_sequence=px.colors.sequential.Plasma_r)
+                fig_rmse.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(15,15,35,0.8)", height=350, showlegend=False, font=dict(color="#ccc"))
+                st.plotly_chart(fig_rmse, use_container_width=True)
+            with col_r2:
+                fig_dir = px.bar(agg_reg, x="Model", y="Directional Acc", color="Model",
+                    title="Directional Accuracy", color_discrete_sequence=px.colors.sequential.Viridis)
+                fig_dir.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(15,15,35,0.8)", height=350, showlegend=False,
+                    yaxis_range=[0, 1.1], font=dict(color="#ccc"))
+                st.plotly_chart(fig_dir, use_container_width=True)
+
+            st.dataframe(agg_reg, use_container_width=True)
+
+    # --- Tab 2: Ablation Study
+    with tab2:
+        st.markdown("#### 🧪 Ablation Study")
+        st.caption("How each component (sentiment variant) affects prediction quality.")
+
+        ablation_df = st.session_state.get("exp_ablation", pd.DataFrame())
+
+        # Try loading from saved files
+        if ablation_df.empty and os.path.exists(results_dir):
+            ab_files = sorted(glob.glob(os.path.join(results_dir, "ablation_study_*.csv")))
+            if ab_files:
+                ablation_df = pd.read_csv(ab_files[-1])
+
+        if ablation_df.empty:
+            st.warning("No ablation results yet. Run an experiment first.")
+        else:
+            if "Stock" in ablation_df.columns:
+                agg_ab = ablation_df.groupby("Variant")[["Accuracy", "F1-Score", "RMSE", "Dir. Accuracy"]].mean().reset_index()
+            else:
+                agg_ab = ablation_df
+
+            # Bar chart
+            fig_ab = go.Figure()
+            ab_colors = ["#667eea", "#00b09b", "#fc4a1a"]
+            for i, metric in enumerate(["Accuracy", "F1-Score", "Dir. Accuracy"]):
+                if metric in agg_ab.columns:
+                    fig_ab.add_trace(go.Bar(
+                        name=metric, x=agg_ab["Variant"], y=agg_ab[metric],
+                        marker_color=ab_colors[i % len(ab_colors)],
+                        text=[f"{v:.3f}" for v in agg_ab[metric]],
+                        textposition="outside",
+                    ))
+            fig_ab.update_layout(
+                barmode="group", template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(15,15,35,0.8)",
+                height=420, margin=dict(t=30, b=80),
+                yaxis_title="Score", yaxis_range=[0, 1.1],
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+                font=dict(color="#ccc"),
+            )
+            st.plotly_chart(fig_ab, use_container_width=True)
+
+            st.dataframe(agg_ab, use_container_width=True)
+
+            # Key insight
+            if len(agg_ab) > 1:
+                best = agg_ab.loc[agg_ab["Accuracy"].idxmax()]
+                worst = agg_ab.loc[agg_ab["Accuracy"].idxmin()]
+                st.markdown(f"""
+                    <div class="info-card">
+                        <b>Key Finding:</b> <i>{best['Variant']}</i> achieves the highest accuracy ({best['Accuracy']:.4f}),
+                        outperforming <i>{worst['Variant']}</i> ({worst['Accuracy']:.4f}) by
+                        <b>{(best['Accuracy'] - worst['Accuracy'])*100:.2f} percentage points</b>.
+                    </div>
+                """, unsafe_allow_html=True)
+
+    # --- Tab 3: Feature Importance
+    with tab3:
+        st.markdown("#### 📊 Feature Importance")
+
+        if exp_results:
+            from modules.backtester import get_feature_importance
+            from modules.feature_engineering import get_feature_columns
+            feature_cols = get_feature_columns()
+
+            for mname in ["RandomForest", "XGBoost"]:
+                if mname in exp_results["models"] and "clf" in exp_results["models"][mname]:
+                    fi = get_feature_importance(exp_results["models"][mname]["clf"], feature_cols)
+                    if not fi.empty:
+                        top_n = fi.head(15)
+                        fig_fi = px.bar(
+                            top_n, x="Importance", y="Feature", orientation="h",
+                            title=f"{mname} — Top 15 Features",
+                            color="Importance", color_continuous_scale="Viridis",
+                        )
+                        fig_fi.update_layout(
+                            template="plotly_dark",
+                            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(15,15,35,0.8)",
+                            height=450, margin=dict(t=50, b=20, l=150),
+                            yaxis=dict(autorange="reversed"),
+                            font=dict(color="#ccc"),
+                        )
+                        st.plotly_chart(fig_fi, use_container_width=True)
+        else:
+            # Try loading from file
+            fi_loaded = False
+            if os.path.exists(results_dir):
+                fi_files = sorted(glob.glob(os.path.join(results_dir, "feature_importance_*.csv")))
+                if fi_files:
+                    fi_df = pd.read_csv(fi_files[-1])
+                    if not fi_df.empty:
+                        fi_loaded = True
+                        top_fi = fi_df.groupby("Feature")["Importance"].mean().sort_values(ascending=False).head(15).reset_index()
+                        fig_fi = px.bar(
+                            top_fi, x="Importance", y="Feature", orientation="h",
+                            title="Top 15 Features (Averaged)",
+                            color="Importance", color_continuous_scale="Viridis",
+                        )
+                        fig_fi.update_layout(
+                            template="plotly_dark",
+                            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(15,15,35,0.8)",
+                            height=450, margin=dict(t=50, b=20, l=150),
+                            yaxis=dict(autorange="reversed"),
+                            font=dict(color="#ccc"),
+                        )
+                        st.plotly_chart(fig_fi, use_container_width=True)
+            if not fi_loaded:
+                st.warning("Run an experiment first to see feature importance.")
+
+    # --- Tab 4: Trading Simulation
+    with tab4:
+        st.markdown("#### 💰 Trading Simulation (Backtest)")
+        st.caption("Simulated P&L: invest when model predicts Bullish, hold cash when Bearish.")
+
+        if exp_results:
+            from modules.backtester import simulate_trading
+
+            sim_results = []
+            for mname, mdata in exp_results["models"].items():
+                if "Baseline" in mname:
+                    continue
+                try:
+                    y_true = exp_results["y_reg_test"][:len(mdata["cls_pred"])]
+                    sim = simulate_trading(y_true, mdata["cls_pred"])
+                    sim["Model"] = mname
+                    sim_results.append(sim)
+                except Exception:
+                    pass
+
+            # Also add buy & hold reference
+            if sim_results:
+                # Equity curve chart
+                fig_eq = go.Figure()
+                eq_colors = ["#667eea", "#00b09b", "#fc4a1a", "#f7b733", "#764ba2"]
+                for i, sim in enumerate(sim_results):
+                    fig_eq.add_trace(go.Scatter(
+                        y=sim["strategy_equity"], mode="lines",
+                        name=f"{sim['Model']} Strategy",
+                        line=dict(color=eq_colors[i % len(eq_colors)], width=2.5),
+                    ))
+                # Add buy & hold from first sim
+                fig_eq.add_trace(go.Scatter(
+                    y=sim_results[0]["buyhold_equity"], mode="lines",
+                    name="Buy & Hold",
+                    line=dict(color="#888", width=2, dash="dash"),
+                ))
+                fig_eq.update_layout(
+                    title="Equity Curve — Strategy vs Buy & Hold",
+                    template="plotly_dark",
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(15,15,35,0.8)",
+                    height=420, margin=dict(t=50, b=40),
+                    yaxis_title="Portfolio Value (₹)",
+                    xaxis_title="Trading Period",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02),
+                    font=dict(color="#ccc"),
+                )
+                st.plotly_chart(fig_eq, use_container_width=True)
+
+                # Summary metrics
+                sim_summary = []
+                for sim in sim_results:
+                    sim_summary.append({
+                        "Model": sim["Model"],
+                        "Strategy Return (%)": sim["total_return_pct"],
+                        "Buy&Hold Return (%)": sim["buyhold_return_pct"],
+                        "Sharpe Ratio": sim["sharpe_ratio"],
+                        "Max Drawdown (%)": sim["max_drawdown_pct"],
+                        "# Trades": sim["n_trades"],
+                    })
+                sim_df = pd.DataFrame(sim_summary)
+                st.dataframe(sim_df, use_container_width=True)
+
+                # Best model callout
+                best_sim = max(sim_results, key=lambda s: s["total_return_pct"])
+                bh_ret = sim_results[0]["buyhold_return_pct"]
+                outperform = best_sim["total_return_pct"] - bh_ret
+                st.markdown(f"""
+                    <div class="info-card">
+                        <b>Result:</b> {best_sim['Model']} achieves <b>{best_sim['total_return_pct']:.2f}%</b> return
+                        vs Buy & Hold <b>{bh_ret:.2f}%</b>
+                        ({'+' if outperform >= 0 else ''}{outperform:.2f}pp {'outperformance' if outperform >= 0 else 'underperformance'}).
+                        Sharpe Ratio: <b>{best_sim['sharpe_ratio']:.4f}</b>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("No simulation results available.")
+        else:
+            # Try loading from saved files
+            trading_loaded = False
+            if os.path.exists(results_dir):
+                t_files = sorted(glob.glob(os.path.join(results_dir, "trading_simulation_*.csv")))
+                if t_files:
+                    t_df = pd.read_csv(t_files[-1])
+                    if not t_df.empty:
+                        trading_loaded = True
+                        st.dataframe(t_df, use_container_width=True)
+
+                        agg_t = t_df.groupby("Model")[["Strategy Return (%)", "Buy&Hold Return (%)", "Sharpe Ratio"]].mean().reset_index()
+                        fig_t = px.bar(agg_t, x="Model", y=["Strategy Return (%)", "Buy&Hold Return (%)"],
+                            barmode="group", title="Avg Returns: Strategy vs Buy & Hold",
+                            color_discrete_sequence=["#667eea", "#888"])
+                        fig_t.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
+                            plot_bgcolor="rgba(15,15,35,0.8)", height=380, font=dict(color="#ccc"))
+                        st.plotly_chart(fig_t, use_container_width=True)
+            if not trading_loaded:
+                st.warning("Run an experiment first to see trading simulation.")
 st.markdown("---")
-st.caption("🚀 Smart Trading Assistant | Digitrader")
+st.markdown("""
+    <div style="text-align:center; padding:20px 0;">
+        <span style="font-size:1.1rem; font-weight:600; background: linear-gradient(90deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            🚀 Digitrader
+        </span>
+        <br/>
+        <span style="color:#666; font-size:0.8rem;">Smart Trading Assistant · For educational purposes only · Not financial advice</span>
+    </div>
+""", unsafe_allow_html=True)
