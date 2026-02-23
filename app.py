@@ -153,7 +153,7 @@ with st.sidebar:
     st.markdown("## 🚀 **Digitrader**")
     st.caption("Smart Trading Assistant")
     st.markdown("---")
-    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results"], label_visibility="collapsed")
+    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results", "📋 Browse All Stocks"], label_visibility="collapsed")
     st.markdown("---")
     st.markdown("##### ⏰ Market Hours")
     st.caption("NSE: Mon–Fri, 9:15 AM – 3:30 PM IST")
@@ -174,11 +174,31 @@ if page == "📊 Trading Dashboard":
     if not stock_list:
         st.error("⚠️ Unable to fetch NSE stocks. Please check your internet or the NSE API.")
         st.stop()
+    
+    # --- Stock count badge
+    st.markdown(f"""
+        <div style="text-align:center; margin-bottom:15px;">
+            <span style="background: linear-gradient(135deg, rgba(102,126,234,0.3), rgba(118,75,162,0.3)); 
+                         padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; color: #a0aec0;">
+                📊 {len(stock_list)} NSE Stocks Available for Analysis
+            </span>
+        </div>
+    """, unsafe_allow_html=True)
 
-    # --- Controls row
+    # --- Controls row with search
     col_stock, col_amount, col_horizon = st.columns([2, 1.5, 1.5])
     with col_stock:
-        stock_symbol = st.selectbox("🏢 Select Stock", stock_list, index=0)
+        # Add search functionality
+        search_term = st.text_input("🔍 Search Stock (Type to filter)", "", key="stock_search")
+        if search_term:
+            filtered_stocks = [s for s in stock_list if search_term.upper() in s.upper()]
+            if filtered_stocks:
+                stock_symbol = st.selectbox("🏢 Select Stock", filtered_stocks, index=0, key="stock_select")
+            else:
+                st.warning(f"No stocks found matching '{search_term}'")
+                stock_symbol = st.selectbox("🏢 Select Stock", stock_list, index=0, key="stock_select_all")
+        else:
+            stock_symbol = st.selectbox("🏢 Select Stock", stock_list, index=0, key="stock_select_default")
     with col_amount:
         investment_amount = st.number_input("💰 Investment (₹)", min_value=1000, value=10000, step=500)
     with col_horizon:
@@ -1019,6 +1039,157 @@ elif page == "📄 Research Results":
                         st.plotly_chart(fig_t, use_container_width=True)
             if not trading_loaded:
                 st.warning("Run an experiment first to see trading simulation.")
+
+# =====================================================================
+# 📋 PAGE 5: BROWSE ALL NSE STOCKS
+# =====================================================================
+elif page == "📋 Browse All Stocks":
+    st.markdown('<p class="main-title">Browse All NSE Stocks</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Complete list of available stocks for analysis</p>', unsafe_allow_html=True)
+    
+    # Stats overview
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Stocks", len(stock_list))
+    with col2:
+        nifty_50 = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS", "HINDUNILVR.NS", "ITC.NS", "SBIN.NS"]
+        nifty_count = sum(1 for s in stock_list if any(n in s for n in nifty_50))
+        st.metric("NIFTY 50 Stocks", "50+")
+    with col3:
+        st.metric("Categories", "14+")
+    
+    st.markdown("---")
+    
+    # Category definitions
+    categories = {
+        "🏆 NIFTY 50": [
+            "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS", "HINDUNILVR.NS", "ITC.NS",
+            "SBIN.NS", "BHARTIARTL.NS", "KOTAKBANK.NS", "BAJFINANCE.NS", "LT.NS", "ASIANPAINT.NS",
+            "AXISBANK.NS", "MARUTI.NS", "SUNPHARMA.NS", "TITAN.NS", "ADANIENT.NS", "ULTRACEMCO.NS",
+            "WIPRO.NS", "NESTLEIND.NS", "HCLTECH.NS", "M&M.NS", "TATAMOTORS.NS", "NTPC.NS",
+            "BAJAJFINSV.NS", "TATASTEEL.NS", "ONGC.NS", "COALINDIA.NS", "POWERGRID.NS", "JSWSTEEL.NS",
+            "TECHM.NS", "INDUSINDBK.NS", "DIVISLAB.NS", "HINDALCO.NS", "ADANIPORTS.NS", "CIPLA.NS",
+            "DRREDDY.NS", "EICHERMOT.NS", "BRITANNIA.NS", "BPCL.NS", "APOLLOHOSP.NS", "BAJAJ-AUTO.NS",
+            "HEROMOTOCO.NS", "TRENT.NS", "GRASIM.NS", "HDFCLIFE.NS", "SBILIFE.NS", "SHRIRAMFIN.NS",
+            "LTIM.NS", "BEL.NS"
+        ],
+        "💻 IT & Technology": [
+            "TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS", "TECHM.NS", "LTIM.NS", "COFORGE.NS",
+            "MPHASIS.NS", "PERSISTENT.NS", "LTTS.NS", "KPITTECH.NS", "CYIENT.NS", "SONATSOFTW.NS",
+            "ZENTEC.NS", "MASTEK.NS", "HAPPSTMNDS.NS", "ROUTE.NS", "RATEGAIN.NS"
+        ],
+        "🏦 Banking & Finance": [
+            "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS", "INDUSINDBK.NS",
+            "BANDHANBNK.NS", "AUBANK.NS", "IDFCFIRSTB.NS", "FEDERALBNK.NS", "RBLBANK.NS", "PNB.NS",
+            "CANBK.NS", "BANKBARODA.NS", "UNIONBANK.NS", "IOB.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS",
+            "CHOLAFIN.NS", "LICHSGFIN.NS", "SRTRANSFIN.NS", "HDFCAMC.NS", "HDFCLIFE.NS", "SBILIFE.NS",
+            "ICICIGI.NS", "ICICIPRULI.NS", "LICI.NS", "SBICARD.NS", "PFC.NS", "RECLTD.NS"
+        ],
+        "🚗 Auto & Components": [
+            "MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", "EICHERMOT.NS",
+            "TVSMOTOR.NS", "ASHOKLEY.NS", "ESCORTS.NS", "MOTHERSON.NS", "BALKRISIND.NS", "MRF.NS",
+            "APOLLOTYRE.NS", "BHARATFORG.NS", "BOSCHLTD.NS", "EXIDEIND.NS", "SONACOMS.NS"
+        ],
+        "💊 Pharma & Healthcare": [
+            "SUNPHARMA.NS", "DIVISLAB.NS", "DRREDDY.NS", "CIPLA.NS", "LUPIN.NS", "AUROPHARMA.NS",
+            "BIOCON.NS", "CADILAHC.NS", "GLENMARK.NS", "LAURUSLABS.NS", "TORNTPHARM.NS", "ALKEM.NS",
+            "PFIZER.NS", "ABBOTINDIA.NS", "SYNGENE.NS", "LALPATHLAB.NS", "APOLLOHOSP.NS", "ZYDUSLIFE.NS"
+        ],
+        "🛍️ FMCG & Consumer": [
+            "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "BRITANNIA.NS", "DABUR.NS", "MARICO.NS",
+            "GODREJCP.NS", "TATACONSUM.NS", "MCDOWELL-N.NS", "UBL.NS", "COLPAL.NS", "PIDILITIND.NS",
+            "PGHH.NS", "VBL.NS", "JUBLFOOD.NS"
+        ],
+        "⚡ Energy & Oil/Gas": [
+            "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS", "HINDPETRO.NS", "COALINDIA.NS", "GAIL.NS",
+            "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "ADANIGREEN.NS", "ADANIPOWER.NS", "IGL.NS",
+            "MGL.NS", "PETRONET.NS"
+        ],
+        "🏗️ Infrastructure": [
+            "LT.NS", "ULTRACEMCO.NS", "GRASIM.NS", "ADANIPORTS.NS", "AMBUJACEM.NS", "ACC.NS",
+            "SHREECEM.NS", "JKCEMENT.NS", "DLF.NS", "GODREJPROP.NS", "OBEROIRLTY.NS", "CONCOR.NS"
+        ],
+        "⚙️ Metals & Mining": [
+            "TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS", "JINDALSTEL.NS", "VEDL.NS", "NATIONALUM.NS",
+            "SAIL.NS", "NMDC.NS", "HINDZINC.NS"
+        ],
+        "📱 Telecom & Media": [
+            "BHARTIARTL.NS", "IDEA.NS", "INDUSTOWER.NS", "TATACOMM.NS", "ZEEL.NS", "PVRINOX.NS"
+        ],
+        "🛒 E-commerce & New Age": [
+            "ZOMATO.NS", "NYKAA.NS", "PAYTM.NS", "POLICYBZR.NS", "DELHIVERY.NS", "EASEMYTRIP.NS"
+        ],
+        "🏪 Retail & Hospitality": [
+            "DMART.NS", "TRENT.NS", "TITAN.NS", "INDIGO.NS", "IRCTC.NS", "INDHOTEL.NS", "WESTLIFE.NS"
+        ]
+    }
+    
+    # Search and filter
+    search = st.text_input("🔍 Search stocks by name or symbol", "")
+    
+    # Category tabs
+    tab_names = ["📊 All Stocks"] + list(categories.keys())
+    tabs = st.tabs(tab_names)
+    
+    # All Stocks tab
+    with tabs[0]:
+        filtered = stock_list
+        if search:
+            filtered = [s for s in stock_list if search.upper() in s.upper()]
+        
+        if filtered:
+            # Display in columns for better viewing
+            cols_per_row = 5
+            num_stocks = len(filtered)
+            for i in range(0, num_stocks, cols_per_row):
+                cols = st.columns(cols_per_row)
+                for j, col in enumerate(cols):
+                    idx = i + j
+                    if idx < num_stocks:
+                        stock = filtered[idx]
+                        # Remove .NS for display
+                        display_name = stock.replace(".NS", "")
+                        with col:
+                            st.markdown(f"""
+                                <div style="background: linear-gradient(135deg, rgba(40,40,80,0.5), rgba(60,60,120,0.3));
+                                           border-radius: 8px; padding: 8px; margin: 4px 0; text-align: center;
+                                           border: 1px solid rgba(102,126,234,0.2);">
+                                    <span style="font-size: 0.85rem; color: #a0aec0;">{display_name}</span>
+                                </div>
+                            """, unsafe_allow_html=True)
+            st.caption(f"Showing {len(filtered)} stocks")
+        else:
+            st.warning(f"No stocks found matching '{search}'")
+    
+    # Category tabs
+    for idx, (cat_name, cat_stocks) in enumerate(categories.items(), 1):
+        with tabs[idx]:
+            filtered_cat = cat_stocks
+            if search:
+                filtered_cat = [s for s in cat_stocks if search.upper() in s.upper()]
+            
+            if filtered_cat:
+                cols_per_row = 5
+                num_stocks = len(filtered_cat)
+                for i in range(0, num_stocks, cols_per_row):
+                    cols = st.columns(cols_per_row)
+                    for j, col in enumerate(cols):
+                        idx_s = i + j
+                        if idx_s < num_stocks:
+                            stock = filtered_cat[idx_s]
+                            display_name = stock.replace(".NS", "")
+                            with col:
+                                st.markdown(f"""
+                                    <div style="background: linear-gradient(135deg, rgba(40,40,80,0.5), rgba(60,60,120,0.3));
+                                               border-radius: 8px; padding: 8px; margin: 4px 0; text-align: center;
+                                               border: 1px solid rgba(102,126,234,0.2);">
+                                        <span style="font-size: 0.85rem; color: #a0aec0;">{display_name}</span>
+                                    </div>
+                                """, unsafe_allow_html=True)
+                st.caption(f"Showing {len(filtered_cat)}/{len(cat_stocks)} stocks in {cat_name}")
+            else:
+                st.warning(f"No stocks found in {cat_name} matching '{search}'")
+
 st.markdown("---")
 st.markdown("""
     <div style="text-align:center; padding:20px 0;">

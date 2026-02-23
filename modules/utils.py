@@ -98,16 +98,108 @@ def get_nse_stock_list():
                     out.append(s)
             return out[:200]
     except Exception:
-        # fallback list: extended list of common NSE tickers (NIFTY 50 / 100 subset) to ensure dropdown has many options
+        # fallback list: comprehensive list of NSE tickers (NIFTY 50, Next 50, Mid-cap, Small-cap, Sectoral)
         return [
-            "RELIANCE.NS","TCS.NS","INFY.NS","HDFCBANK.NS","ITC.NS","SBIN.NS","ONGC.NS","LT.NS",
-            "HINDUNILVR.NS","ICICIBANK.NS","KOTAKBANK.NS","AXISBANK.NS","BAJAJFINSV.NS","BHARTIARTL.NS",
-            "BPCL.NS","BRITANNIA.NS","CIPLA.NS","DIVISLAB.NS","DRREDDY.NS","EICHERMOT.NS","GODREJPROP.NS",
-            "GRASIM.NS","HCLTECH.NS","HDFC.NS","HDFCBANK.NS","HDFCLIFE.NS","HINDALCO.NS","HINDPETRO.NS",
-            "IOC.NS","JSWSTEEL.NS","MARUTI.NS","M&M.NS","NESTLEIND.NS","NTPC.NS","POWERGRID.NS","RECLTD.NS",
-            "SBILIFE.NS","SUNPHARMA.NS","TATAMOTORS.NS","TATASTEEL.NS","TECHM.NS","ULTRACEMCO.NS","VOLTAS.NS",
-            "WIPRO.NS","ZOMATO.NS","ADANIENT.NS","ADANIPORTS.NS","BAJAJ-AUTO.NS","HAVELLS.NS","LICI.NS",
-            "MINDTREE.NS","SRF.NS","TORNTPHARM.NS","SIEMENS.NS","TATACONSUM.NS","AMBUJACEM.NS","COALINDIA.NS"
+            # ===== NIFTY 50 =====
+            "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS", "HINDUNILVR.NS", "ITC.NS",
+            "SBIN.NS", "BHARTIARTL.NS", "KOTAKBANK.NS", "BAJFINANCE.NS", "LT.NS", "ASIANPAINT.NS",
+            "AXISBANK.NS", "MARUTI.NS", "SUNPHARMA.NS", "TITAN.NS", "ADANIENT.NS", "ULTRACEMCO.NS",
+            "WIPRO.NS", "NESTLEIND.NS", "HCLTECH.NS", "M&M.NS", "TATAMOTORS.NS", "NTPC.NS",
+            "BAJAJFINSV.NS", "TATASTEEL.NS", "ONGC.NS", "COALINDIA.NS", "POWERGRID.NS", "JSWSTEEL.NS",
+            "TECHM.NS", "INDUSINDBK.NS", "DIVISLAB.NS", "HINDALCO.NS", "ADANIPORTS.NS", "CIPLA.NS",
+            "DRREDDY.NS", "EICHERMOT.NS", "BRITANNIA.NS", "BPCL.NS", "APOLLOHOSP.NS", "BAJAJ-AUTO.NS",
+            "HEROMOTOCO.NS", "TRENT.NS", "GRASIM.NS", "HDFCLIFE.NS", "SBILIFE.NS", "SHRIRAMFIN.NS",
+            "LTIM.NS", "BEL.NS",
+            
+            # ===== NIFTY NEXT 50 =====
+            "ADANIGREEN.NS", "ADANIPOWER.NS", "ADANITRANS.NS", "ATGL.NS", "AMBUJACEM.NS", "ACC.NS",
+            "AUBANK.NS", "BANDHANBNK.NS", "BEL.NS", "BERGEPAINT.NS", "BOSCHLTD.NS", "CHOLAFIN.NS",
+            "COLPAL.NS", "DABUR.NS", "DLF.NS", "DMART.NS", "GODREJCP.NS", "GAIL.NS", "GODREJPROP.NS",
+            "HAVELLS.NS", "HDFCAMC.NS", "ICICIGI.NS", "ICICIPRULI.NS", "INDIGO.NS", "JINDALSTEL.NS",
+            "JUBLFOOD.NS", "LICHSGFIN.NS", "LUPIN.NS", "MCDOWELL-N.NS", "MARICO.NS", "MOTHERSON.NS",
+            "MPHASIS.NS", "NMDC.NS", "NAUKRI.NS", "OBEROIRLTY.NS", "OFSS.NS", "PETRONET.NS",
+            "PERSISTENT.NS", "PGHH.NS", "PIDILITIND.NS", "PEL.NS", "PFC.NS", "RECLTD.NS",
+            "SBICARD.NS", "SIEMENS.NS", "SRF.NS", "TORNTPHARM.NS", "TVSMOTOR.NS", "UBL.NS",
+            "VEDL.NS", "VOLTAS.NS",
+            
+            # ===== Mid-cap & Popular Stocks =====
+            "ZOMATO.NS", "PAYTM.NS", "POLICYBZR.NS", "NYKAA.NS", "IRCTC.NS", "HAL.NS", "IRFC.NS",
+            "CANBK.NS", "IOC.NS", "BANKBARODA.NS", "PNB.NS", "UNIONBANK.NS", "IDEA.NS", "SAIL.NS",
+            "BHEL.NS", "CUMMINSIND.NS", "ABB.NS", "ASHOKLEY.NS", "AUROPHARMA.NS", "BIOCON.NS",
+            "CADILAHC.NS", "CONCOR.NS", "COFORGE.NS", "DELTACORP.NS", "DIXON.NS", "ESCORTS.NS",
+            "FEDERALBNK.NS", "GLENMARK.NS", "GMRINFRA.NS", "GODREJAGRO.NS", "GRAPHITE.NS",
+            "HONAUT.NS", "IDFCFIRSTB.NS", "IEX.NS", "IGL.NS", "INDHOTEL.NS", "INDUSTOWER.NS",
+            "IOB.NS", "JKCEMENT.NS", "LALPATHLAB.NS", "LAURUSLABS.NS", "LICI.NS", "LTF.NS",
+            "MANAPPURAM.NS", "MAZDOCK.NS", "METROPOLIS.NS", "MGL.NS", "MINDTREE.NS", "MRF.NS",
+            "MUTHOOTFIN.NS", "NAM-INDIA.NS", "NATIONALUM.NS", "PAGEIND.NS", "PFIZER.NS",
+            "PIIND.NS", "POLYCAB.NS", "PVRINOX.NS", "RAJESHEXPO.NS", "RAMCOCEM.NS", "RBLBANK.NS",
+            "SBICARD.NS", "SCHAEFFLER.NS", "SHREECEM.NS", "SONACOMS.NS", "SRTRANSFIN.NS",
+            "STAR.NS", "SYNGENE.NS", "TATACHEM.NS", "TATACOMM.NS", "TATACONSUM.NS", "TATAELXSI.NS",
+            "TATAPOWER.NS", "TEJASNET.NS", "TIINDIA.NS", "TORNTPOWER.NS", "TRENT.NS", "UPL.NS",
+            "WHIRLPOOL.NS", "ZEEL.NS", "ZYDUSLIFE.NS",
+            
+            # ===== IT & Tech =====
+            "TECHM.NS", "WIPRO.NS", "HCLTECH.NS", "INFY.NS", "TCS.NS", "LTIM.NS", "COFORGE.NS",
+            "MPHASIS.NS", "PERSISTENT.NS", "LTTS.NS", "KPITTECH.NS", "CYIENT.NS", "SONATSOFTW.NS",
+            "ZENTEC.NS", "MASTEK.NS", "HAPPSTMNDS.NS", "ROUTE.NS", "RATEGAIN.NS",
+            
+            # ===== Auto & Auto Components =====
+            "MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", "EICHERMOT.NS",
+            "TVSMOTOR.NS", "ASHOKLEY.NS", "ESCORTS.NS", "MOTHERSON.NS", "BALKRISIND.NS", "MRF.NS",
+            "APOLLOTYRE.NS", "BHARATFORG.NS", "BOSCHLTD.NS", "EXIDEIND.NS", "SCHAEFFLER.NS",
+            "SONACOMS.NS", "AMARAJABAT.NS",
+            
+            # ===== Banking & Finance =====
+            "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS", "INDUSINDBK.NS",
+            "BANDHANBNK.NS", "AUBANK.NS", "IDFCFIRSTB.NS", "FEDERALBNK.NS", "RBLBANK.NS", "PNB.NS",
+            "CANBK.NS", "BANKBARODA.NS", "UNIONBANK.NS", "IOB.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS",
+            "CHOLAFIN.NS", "LICHSGFIN.NS", "SRTRANSFIN.NS", "HDFCAMC.NS", "HDFCLIFE.NS", "SBILIFE.NS",
+            "ICICIGI.NS", "ICICIPRULI.NS", "LICI.NS", "SBICARD.NS", "PFC.NS", "RECLTD.NS",
+            "MANAPPURAM.NS", "MUTHOOTFIN.NS",
+            
+            # ===== Pharma & Healthcare =====
+            "SUNPHARMA.NS", "DIVISLAB.NS", "DRREDDY.NS", "CIPLA.NS", "LUPIN.NS", "AUROPHARMA.NS",
+            "BIOCON.NS", "CADILAHC.NS", "GLENMARK.NS", "LAURUSLABS.NS", "TORNTPHARM.NS", "ALKEM.NS",
+            "PFIZER.NS", "ABBOTINDIA.NS", "SYNGENE.NS", "LALPATHLAB.NS", "METROPOLIS.NS",
+            "APOLLOHOSP.NS", "MAXHEALTH.NS", "FORTIS.NS", "ZYDUSLIFE.NS",
+            
+            # ===== FMCG & Consumer =====
+            "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "BRITANNIA.NS", "DABUR.NS", "MARICO.NS",
+            "GODREJCP.NS", "TATACONSUM.NS", "MCDOWELL-N.NS", "UBL.NS", "COLPAL.NS", "PIDILITIND.NS",
+            "PGHH.NS", "VBL.NS", "GILLETTE.NS", "RADICO.NS", "EMAMILTD.NS", "JYOTHYLAB.NS",
+            "BIKAJI.NS", "JUBLFOOD.NS", "VARUNbeverages.NS",
+            
+            # ===== Energy & Oil/Gas =====
+            "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS", "HINDPETRO.NS", "COALINDIA.NS", "GAIL.NS",
+            "NTPC.NS", "POWERGRID.NS", "TATAPOWER.NS", "ADANIGREEN.NS", "ADANIPOWER.NS", "ADANITRANS.NS",
+            "ATGL.NS", "IGL.NS", "MGL.NS", "PETRONET.NS", "OIL.NS", "GUJGASLTD.NS",
+            
+            # ===== Infrastructure & Construction =====
+            "LT.NS", "ULTRACEMCO.NS", "GRASIM.NS", "ADANIPORTS.NS", "AMBUJACEM.NS", "ACC.NS",
+            "SHREECEM.NS", "RAMCOCEM.NS", "JKCEMENT.NS", "DLF.NS", "GODREJPROP.NS", "OBEROIRLTY.NS",
+            "PRESTIGE.NS", "BRIGADE.NS", "PHOENIXLTD.NS", "CONCOR.NS", "GMRINFRA.NS",
+            
+            # ===== Metals & Mining =====
+            "TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS", "JINDALSTEL.NS", "VEDL.NS", "NATIONALUM.NS",
+            "SAIL.NS", "NMDC.NS", "COALINDIA.NS", "HINDZINC.NS", "RATNAMANI.NS", "APL.NS",
+            
+            # ===== Telecom & Media =====
+            "BHARTIARTL.NS", "IDEA.NS", "INDUSTOWER.NS", "TATACOMM.NS", "ZEEL.NS", "PVRINOX.NS",
+            "SUNTV.NS", "NETWORK18.NS", "DISHTV.NS",
+            
+            # ===== E-commerce & New Age Tech =====
+            "ZOMATO.NS", "NYKAA.NS", "PAYTM.NS", "POLICYBZR.NS", "DELHIVERY.NS", "CARTRADE.NS",
+            "EASEMYTRIP.NS", "ROUTE.NS", "RATEGAIN.NS",
+            
+            # ===== Retail & Hospitality =====
+            "DMART.NS", "TRENT.NS", "TITAN.NS", "INDIGO.NS", "IRCTC.NS", "INDHOTEL.NS",
+            "JUBLFOOD.NS", "WESTLIFE.NS", "SAPPHIRE.NS", "SHOPERSTOP.NS",
+            
+            # ===== Others =====
+            "ABB.NS", "SIEMENS.NS", "HAVELLS.NS", "CROMPTON.NS", "VOLTAS.NS", "BLUESTARCO.NS",
+            "DIXON.NS", "HONAUT.NS", "CUMMINSIND.NS", "THERMAX.NS", "KANSAINER.NS", "KEI.NS",
+            "POLYCAB.NS", "ATUL.NS", "DEEPAKNTR.NS", "GNFC.NS", "NAVINFLUOR.NS", "TATACHEM.NS",
+            "UPL.NS", "PIIND.NS", "SRF.NS", "AARTI.NS", "BALRAMCHIN.NS", "ALKYLAMINE.NS",
         ]
 
 

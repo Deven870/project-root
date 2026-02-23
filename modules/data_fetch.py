@@ -1,47 +1,109 @@
-import os
 import yfinance as yf
-import requests
+import pandas as pd
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
+import requests
+import json
 
-load_dotenv()
-NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")  
-
-def fetch_stock_data(ticker, period="7d", interval="1d"):
+def get_all_nse_stocks():
     """
-    Fetch historical stock data using yfinance
-    period: '7d', '1mo', etc.
-    interval: '1d', '1h', '5m'
+    Fetch all NSE listed stocks from NSE India website
+    Returns: DataFrame with stock symbols and details
     """
     try:
-        df = yf.download(ticker, period=period, interval=interval)
-        if df.empty:
-            raise ValueError("No data fetched for ticker.")
-        return df
+        # NSE API endpoint for all equity stocks
+        url = "https://www.nseindia.com/api/equity-stockIndices?index=SECURITIES%20IN%20F%26O"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        
+        session = requests.Session()
+        # Get cookies first
+        session.get("https://www.nseindia.com", headers=headers, timeout=10)
+        
+        # Fetch equity list
+        response = session.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            stocks = [item['symbol'] for item in data.get('data', [])]
+            
+            df = pd.DataFrame(stocks, columns=['SYMBOL'])
+            print(f"Total NSE stocks fetched: {len(df)}")
+            return df
+        else:
+            print(f"Failed to fetch data. Status code: {response.status_code}")
+            return get_nse_stocks_fallback()
+            
     except Exception as e:
-        raise ValueError(f"Error fetching stock data: {e}")
+        print(f"Error fetching NSE stocks: {e}")
+        return get_nse_stocks_fallback()
 
-def get_news_for_stock(stock_ticker, from_days=7, max_articles=20):
+def get_nse_stocks_fallback():
     """
-    Fetch recent news for a stock using NewsAPI
+    Fallback list of major NSE stocks
     """
-    today = datetime.now()
-    from_date = today - timedelta(days=from_days)
+    major_stocks = [
+        "RELIANCE", "TCS", "HDFCBANK", "INFY", "HINDUNILVR", "ICICIBANK",
+        "HDFC", "BAJFINANCE", "BHARTIARTL", "SBIN", "ITC", "KOTAKBANK",
+        "LT", "ASIANPAINT", "AXISBANK", "MARUTI", "TITAN", "SUNPHARMA",
+        "ULTRACEMCO", "NESTLEIND", "WIPRO", "HCLTECH", "TECHM", "POWERGRID",
+        "NTPC", "ONGC", "TATASTEEL", "TATAMOTORS", "ADANIPORTS", "JSWSTEEL",
+        "INDUSINDBK", "BAJAJFINSV", "DIVISLAB", "DRREDDY", "CIPLA", "EICHERMOT",
+        "HEROMOTOCO", "BPCL", "GRASIM", "COALINDIA", "SHREECEM", "BRITANNIA",
+        "APOLLOHOSP", "UPL", "M&M", "HINDALCO", "ADANIENT", "TATACONSUM"
+    ]
     
-    url = (
-        f"https://newsapi.org/v2/everything?"
-        f"q={stock_ticker} AND (NSE OR stock OR market)&"
-        f"from={from_date.strftime('%Y-%m-%d')}&"
-        f"sortBy=publishedAt&"
-        f"pageSize={max_articles}&"
-        f"apiKey={NEWS_API_KEY}"
-    )
+    df = pd.DataFrame(major_stocks, columns=['SYMBOL'])
+    print(f"Using fallback list: {len(df)} stocks")
+    return df
 
-    response = requests.get(url)
-    data = response.json()
+def get_nse_stock_symbols():
+    """
+    Get just the stock symbols as a list
+    Returns: List of stock symbols
+    """
+    df = get_all_nse_stocks()
+    if not df.empty and 'SYMBOL' in df.columns:
+        return df['SYMBOL'].tolist()
+    return []
 
-    if data.get("status") != "ok":
-        return []
+def save_nse_stocks_to_csv(filename='nse_stocks.csv'):
+    """
+    Save all NSE stocks to CSV file
+    """
+    df = get_all_nse_stocks()
+    if not df.empty:
+        df.to_csv(filename, index=False)
+        print(f"NSE stocks saved to {filename}")
+        return filename
+    return None
 
-    headlines = [{"title": a["title"], "url": a["url"]} for a in data["articles"]]
-    return headlines
+def get_stock_data(symbol, period="1mo"):
+    """
+    Fetch stock data using yfinance
+    Add .NS suffix for NSE stocks
+    """
+    try:
+        nse_symbol = f"{symbol}.NS" if not symbol.endswith('.NS') else symbol
+        ticker = yf.Ticker(nse_symbol)
+        data = ticker.history(period=period)
+        return data
+    except Exception as e:
+        print(f"Error fetching data for {symbol}: {e}")
+        return None
+
+def get_stock_info(symbol):
+    """
+    Get detailed stock information
+    """
+    try:
+        nse_symbol = f"{symbol}.NS" if not symbol.endswith('.NS') else symbol
+        ticker = yf.Ticker(nse_symbol)
+        info = ticker.info
+        return info
+    except Exception as e:
+        print(f"Error fetching info for {symbol}: {e}")
+        return None
