@@ -200,7 +200,7 @@ if page == "📊 Trading Dashboard":
         else:
             stock_symbol = st.selectbox("🏢 Select Stock", stock_list, index=0, key="stock_select_default")
     with col_amount:
-        investment_amount = st.number_input("💰 Investment (₹)", min_value=1000, value=10000, step=500)
+        investment_amount = st.number_input("💰 Investment (₹)", min_value=100, value=1000, step=1)
     with col_horizon:
         horizon = st.selectbox("⏳ Horizon", ["Intraday", "Swing", "Long-Term"])
 
@@ -371,15 +371,47 @@ if page == "📊 Trading Dashboard":
                     annotation_position="bottom left",
                 )
 
+            # Future predictions with dates
+            future_predictions = prediction_data.get("future_predictions")
+            if future_predictions is not None and not future_predictions.empty:
+                fig_candle.add_trace(go.Scatter(
+                    x=future_predictions["Date"],
+                    y=future_predictions["Predicted_Price"],
+                    mode="lines+markers",
+                    name="Prediction Path",
+                    line=dict(color="#96c93d", width=3, dash="dash"),
+                    marker=dict(size=6, color="#96c93d"),
+                    hovertemplate="<b>%{x|%d %b %Y, %H:%M}</b><br>Predicted: ₹%{y:,.2f}<extra></extra>",
+                ))
+
             fig_candle.update_layout(
                 height=480,
+                title={
+                    "text": (
+                        f"📊 {stock_symbol} - {horizon} Prediction "
+                        f"({df_chart.index[0].strftime('%d %b %Y')} to {df_chart.index[-1].strftime('%d %b %Y')}) "
+                        f"→ Predicting till {future_predictions['Date'].max().strftime('%d %b %Y') if future_predictions is not None and not future_predictions.empty else 'N/A'}"
+                    ) if len(df_chart) > 0 else f"📊 {stock_symbol} - {horizon} Prediction",
+                    "font": {"size": 14, "color": "#a0aec0"},
+                    "x": 0.5,
+                    "xanchor": "center"
+                },
                 template="plotly_dark",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(15,15,35,0.8)",
-                xaxis=dict(rangeslider=dict(visible=False)),
+                xaxis=dict(
+                    rangeslider=dict(visible=False),
+                    title="Date",
+                    title_font=dict(size=12, color="#a0aec0"),
+                    tickformat="%d %b",
+                    tickangle=-45,
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor="rgba(102,126,234,0.1)",
+                ),
                 yaxis=dict(title="Price (₹)", side="left"),
                 yaxis2=dict(title="Volume", overlaying="y", side="right", showgrid=False, range=[0, df_chart.get("Volume", pd.Series([1])).max() * 4] if "Volume" in df_chart.columns else [0, 1]),
-                margin=dict(t=20, b=40, l=60, r=60),
+                margin=dict(t=60, b=60, l=60, r=60),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 font=dict(color="#ccc"),
             )
@@ -423,7 +455,7 @@ elif page == "💼 Portfolio Suggestions":
 
     col_a, col_b = st.columns(2)
     with col_a:
-        total_amount = st.number_input("💰 Total Investment (₹)", min_value=1000, value=50000, step=1000)
+        total_amount = st.number_input("💰 Total Investment (₹)", min_value=100, value=10000, step=1)
         horizon = st.selectbox("⏳ Investment Horizon", ["Intraday", "Swing", "Long-Term"])
     with col_b:
         allocation_mode = st.selectbox("🔧 Allocation Strategy", ["Proportional", "Equal", "Risk-adjusted"], index=0)

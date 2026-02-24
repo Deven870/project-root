@@ -204,6 +204,65 @@ def get_nse_stock_list():
 
 
 # =========================================
+# 📈 GENERATE FUTURE PREDICTIONS WITH DATES
+# =========================================
+def generate_future_predictions(current_price, confidence, trend, horizon):
+    """
+    Generate predicted prices for future periods with dates based on horizon.
+    Returns a DataFrame with dates and predicted prices.
+    """
+    from datetime import datetime, timedelta
+    
+    try:
+        # Determine number of future periods and interval based on horizon
+        if horizon.lower() == 'intraday':
+            num_periods = 8  # Next 8 hours
+            interval = timedelta(hours=1)
+            volatility = 0.01 * confidence  # 1% per hour
+        elif horizon.lower() == 'swing':
+            num_periods = 10  # Next 10 days
+            interval = timedelta(days=1)
+            volatility = 0.02 * confidence  # 2% per day
+        else:  # long-term
+            num_periods = 60  # Next 60 days
+            interval = timedelta(days=1)
+            volatility = 0.001 * confidence  # 0.1% per day
+        
+        # Generate future dates
+        future_dates = []
+        current_date = datetime.now()
+        for i in range(1, num_periods + 1):
+            # Skip weekends for daily data
+            future_date = current_date + (interval * i)
+            if horizon.lower() != 'intraday':
+                # Skip weekends (5=Saturday, 6=Sunday)
+                while future_date.weekday() >= 5:
+                    future_date += timedelta(days=1)
+            future_dates.append(future_date)
+        
+        # Generate predicted prices with smooth progression
+        predicted_prices = []
+        trend_direction = 1 if "bull" in trend.lower() else (-1 if "bear" in trend.lower() else 0)
+        
+        for i, date in enumerate(future_dates):
+            # Trend-based movement with some noise
+            trend_component = trend_direction * volatility * (i + 1) * current_price
+            price = current_price + trend_component
+            predicted_prices.append(max(price, current_price * 0.5))  # Don't go below 50% of current
+        
+        # Create DataFrame
+        future_df = pd.DataFrame({
+            'Date': future_dates,
+            'Predicted_Price': predicted_prices
+        })
+        
+        return future_df
+    except Exception as e:
+        print(f"Error generating future predictions: {e}")
+        return pd.DataFrame()
+
+
+# =========================================
 # 📈 STOCK PREDICTIONS & SENTIMENT
 # =========================================
 def get_stock_predictions(ticker, invest_amount=None, horizon="intraday"):
@@ -296,6 +355,9 @@ def get_stock_predictions(ticker, invest_amount=None, horizon="intraday"):
     if current_price and current_price > 0:
         stop_loss = current_price * (1 - sl_pct)
 
+    # Generate future predictions with dates
+    future_predictions = generate_future_predictions(current_price, confidence, trend, horizon)
+
     return {
         "trend": trend,
         "confidence": confidence,
@@ -305,6 +367,7 @@ def get_stock_predictions(ticker, invest_amount=None, horizon="intraday"):
         "predicted_return_pct": predicted_return_pct,
         "stop_loss": stop_loss,
         "price_data": data,
+        "future_predictions": future_predictions,
     }
 
 
