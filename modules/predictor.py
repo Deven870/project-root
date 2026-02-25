@@ -7,7 +7,7 @@ def simple_trend_prediction(prices):
 
     change = prices[-1] - prices[0]
     confidence = abs(change) / max(prices[0], 1)
-
+#future: implement a more sophisticated model using machine learning or technical indicators
     if change > 0:
         trend = "Bullish"
     elif change < 0:

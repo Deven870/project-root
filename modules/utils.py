@@ -263,7 +263,7 @@ def generate_future_predictions(current_price, confidence, trend, horizon):
 
 
 # =========================================
-# 📈 STOCK PREDICTIONS & SENTIMENT
+# 📈 STOCK PREDICTIONS & SENTIMENT devndere
 # =========================================
 def get_stock_predictions(ticker, invest_amount=None, horizon="intraday"):
     """
