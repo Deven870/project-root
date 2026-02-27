@@ -261,7 +261,7 @@ def generate_future_predictions(current_price, confidence, trend, horizon):
         print(f"Error generating future predictions: {e}")
         return pd.DataFrame()
 
-
+# done
 # =========================================
 # 📈 STOCK PREDICTIONS & SENTIMENT devndere
 # =========================================
