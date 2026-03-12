@@ -399,6 +399,7 @@ def get_portfolio_allocation(total_amount, horizon="longterm", allocation_mode='
     pred_trends = []
     pred_confidences = []
     for stck in stocks:
+        trend, confidence = 'Neutral', 0.0
         try:
             df = fetch_price_data(stck)
             # fallbacks
@@ -406,6 +407,7 @@ def get_portfolio_allocation(total_amount, horizon="longterm", allocation_mode='
                 # fallback random small return to keep it in the list
                 er = np.random.uniform(expected_return_min, expected_return_max)
                 vol = 1.0
+                trend, confidence = 'Neutral', 0.0
             else:
                 # simple price change based on horizon
                 if horizon.lower() == 'intraday':
@@ -440,6 +442,7 @@ def get_portfolio_allocation(total_amount, horizon="longterm", allocation_mode='
         except Exception:
             er = np.random.uniform(expected_return_min, expected_return_max)
             vol = 1.0
+            trend, confidence = 'Neutral', 0.0
 
         expected_returns.append(er)
         volatilities.append(vol)

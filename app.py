@@ -131,7 +131,11 @@ hr {
 # =========================
 @st.cache_data(ttl=300, show_spinner="Fetching predictions...")
 def cached_predictions(ticker, invest_amount, horizon):
-    return get_stock_predictions(ticker, invest_amount, horizon)
+    result = get_stock_predictions(ticker, invest_amount, horizon)
+    # Do not cache empty/failed results — force a fresh attempt next run.
+    if result.get("current_price", 0) == 0 or result.get("price_data") is None or (hasattr(result.get("price_data"), "empty") and result["price_data"].empty):
+        st.cache_data.clear()
+    return result
 
 @st.cache_data(ttl=300, show_spinner="Generating portfolio...")
 def cached_portfolio(total_amount, horizon, allocation_mode, top_n, max_weight_pct):
@@ -157,6 +161,10 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("##### ⏰ Market Hours")
     st.caption("NSE: Mon–Fri, 9:15 AM – 3:30 PM IST")
+    st.markdown("---")
+    if st.button("🔄 Refresh Data", use_container_width=True, help="Clear cached data and reload fresh prices"):
+        st.cache_data.clear()
+        st.rerun()
     st.markdown("---")
     st.markdown(
         "<div style='text-align:center; opacity:0.5; font-size:0.75rem;'>v2.0 · Built with Streamlit</div>",
