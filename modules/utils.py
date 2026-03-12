@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import yfinance as yf
+import time
 from datetime import datetime, timedelta
 
 # Import ML + sentiment modules (if available)
@@ -573,28 +574,68 @@ def get_investment_advice(ticker, horizon="intraday"):
 # =========================================
 def fetch_price_data(ticker, period='1mo', interval='1d'):
     """
-    Fetch recent stock data using yfinance.
+    Fetch recent stock data using yfinance with retries and fallbacks.
     """
-    try:
-        data = yf.download(ticker, period=period, interval=interval, progress=False)
-        if data.empty:
-            raise ValueError("No price data found.")
+    def _normalize(df: pd.DataFrame) -> pd.DataFrame:
+        if df is None or df.empty:
+            return pd.DataFrame()
 
-        # If yfinance returns MultiIndex columns (e.g., for multiple tickers),
-        # flatten the columns to ensure columns like "Open" and "Close" are present.
-        if hasattr(data.columns, 'nlevels') and data.columns.nlevels > 1:
-            # Use only the first level (Open/Close/High/Low/Volume) which is what our predictor expects.
-            data.columns = data.columns.get_level_values(0)
+        # Flatten MultiIndex columns from yfinance output.
+        if hasattr(df.columns, 'nlevels') and df.columns.nlevels > 1:
+            df.columns = df.columns.get_level_values(0)
 
-        # If 'Close' column is missing but 'Adj Close' is available, use that as Close
-        if 'Close' not in data.columns and 'Adj Close' in data.columns:
-            data['Close'] = data['Adj Close']
+        if 'Close' not in df.columns and 'Adj Close' in df.columns:
+            df['Close'] = df['Adj Close']
+        if 'Open' not in df.columns and 'open' in df.columns:
+            df['Open'] = df['open']
 
-        # If 'Open' isn't found but there's a similar column, try to fall back
-        if 'Open' not in data.columns and 'open' in data.columns:
-            data['Open'] = data['open']
+        required = {'Open', 'High', 'Low', 'Close'}
+        if not required.issubset(set(df.columns)):
+            return pd.DataFrame()
 
-        return data
-    except Exception as e:
-        print(f"Error fetching {ticker} data: {e}")
-        return pd.DataFrame()
+        return df.sort_index().dropna(how='all')
+
+    symbols_to_try = [ticker]
+    if isinstance(ticker, str):
+        tk = ticker.strip().upper()
+        if tk.endswith('.NS'):
+            symbols_to_try.append(tk[:-3])
+        else:
+            symbols_to_try.append(f"{tk}.NS")
+
+    errors = []
+    for sym in symbols_to_try:
+        for attempt in range(3):
+            try:
+                # Primary path: download endpoint
+                data = yf.download(
+                    sym,
+                    period=period,
+                    interval=interval,
+                    progress=False,
+                    auto_adjust=False,
+                    threads=False,
+                )
+                data = _normalize(data)
+                if not data.empty:
+                    return data
+
+                # Fallback path: ticker.history endpoint
+                data = yf.Ticker(sym).history(
+                    period=period,
+                    interval=interval,
+                    auto_adjust=False,
+                )
+                data = _normalize(data)
+                if not data.empty:
+                    return data
+
+                errors.append(f"{sym}: empty response")
+            except Exception as e:
+                errors.append(f"{sym}: {e}")
+
+            # Tiny backoff for transient Yahoo failures.
+            time.sleep(0.8)
+
+    print(f"Error fetching {ticker} data: {' | '.join(errors[-4:])}")
+    return pd.DataFrame()
