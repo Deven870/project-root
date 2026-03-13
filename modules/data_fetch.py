@@ -4,6 +4,46 @@ from datetime import datetime, timedelta
 import requests
 import json
 
+
+def fetch_stock_data(symbol, period="1mo", interval="1d"):
+    """
+    Backward-compatible stock fetch used by main.py.
+    Delegates to the robust fetcher in modules.utils.
+    """
+    try:
+        from modules.utils import fetch_price_data
+        return fetch_price_data(symbol, period=period, interval=interval)
+    except Exception as e:
+        print(f"Error fetching stock data for {symbol}: {e}")
+        return pd.DataFrame()
+
+
+def get_news_for_stock(stock_ticker, from_days=7, max_articles=20):
+    """
+    Backward-compatible news fetch used by main.py.
+    Tries sentiment_engine NewsAPI integration first, then yfinance news fallback.
+    """
+    try:
+        from modules.sentiment_engine import get_news_for_stock as _news_fetcher
+        headlines = _news_fetcher(stock_ticker, from_days=from_days, max_articles=max_articles)
+        if isinstance(headlines, list) and len(headlines) > 0:
+            return headlines
+    except Exception:
+        pass
+
+    try:
+        ticker = yf.Ticker(stock_ticker)
+        news = getattr(ticker, "news", []) or []
+        return [
+            {
+                "title": item.get("title", ""),
+                "url": item.get("link", "")
+            }
+            for item in news[:max_articles]
+        ]
+    except Exception:
+        return []
+
 def get_all_nse_stocks():
     """
     Fetch all NSE listed stocks from NSE India website
