@@ -157,7 +157,7 @@ with st.sidebar:
     st.markdown("## 🚀 **Digitrader**")
     st.caption("Smart Trading Assistant")
     st.markdown("---")
-    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results", "📋 Browse All Stocks"], label_visibility="collapsed")
+    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results", "� Tracking Dashboard", "�📋 Browse All Stocks"], label_visibility="collapsed")
     st.markdown("---")
     st.markdown("##### ⏰ Market Hours")
     st.caption("NSE: Mon–Fri, 9:15 AM – 3:30 PM IST")
@@ -441,6 +441,44 @@ if page == "📊 Trading Dashboard":
             """, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Error: {e}")
+
+        st.markdown("---")
+        
+        # ===== Log to Sheets Button =====
+        col_log1, col_log2, col_log3 = st.columns([1.5, 1, 1])
+        with col_log1:
+            st.markdown("#### 📊 Save to Tracking")
+        with col_log2:
+            if st.button("💾 Log to Sheets", use_container_width=True, key="log_to_sheets"):
+                try:
+                    from modules.sheets_tracker import get_tracker
+                    sheets_url = st.session_state.get('sheets_url') or os.getenv("SHEETS_URL", "")
+                    
+                    if sheets_url:
+                        tracker = get_tracker(sheets_url)
+                        if tracker and tracker.authenticate() and tracker.open_sheet(sheets_url):
+                            tracker.log_search(
+                                symbol=stock_symbol,
+                                trend=trend,
+                                confidence=confidence,
+                                current_price=current_price,
+                                predicted_price=predicted_price,
+                                expected_return=predicted_return_pct,
+                                sentiment=sentiment
+                            )
+                            st.success(f"✅ Logged {stock_symbol} to Sheets!")
+                        else:
+                            st.warning("⚠️ Need to set up Google Sheets first. Go to 📊 Tracking Dashboard")
+                    else:
+                        st.warning("⚠️ No Sheets URL configured. Go to 📊 Tracking Dashboard to set up!")
+                except ImportError:
+                    st.info("📊 Sheets integration available with: `pip install gspread`")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+        with col_log3:
+            if st.button("📈 To Tracking", use_container_width=True, key="nav_tracking"):
+                # This would navigate to tracking dashboard
+                st.info("Go to 📊 Tracking Dashboard in the sidebar to set up sheets!")
 
     except Exception as e:
         st.error(f"Error fetching predictions: {e}")
@@ -1081,7 +1119,326 @@ elif page == "📄 Research Results":
                 st.warning("Run an experiment first to see trading simulation.")
 
 # =====================================================================
-# 📋 PAGE 5: BROWSE ALL NSE STOCKS
+# � PAGE 5: TRACKING DASHBOARD (Google Sheets Integration)
+# =====================================================================
+elif page == "📊 Tracking Dashboard":
+    st.markdown('<p class="main-title">📊 Investment Tracking Dashboard</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Real-time portfolio tracking with Google Sheets integration</p>', unsafe_allow_html=True)
+    
+    try:
+        from modules.sheets_tracker import get_tracker
+    except ImportError:
+        st.error("⚠️ Google Sheets integration not installed. Run: `pip install gspread google-auth-oauthlib`")
+        st.stop()
+    
+    # Setup tracker from session or config
+    tracker = None
+    sheets_url = None
+    
+    # Check for saved sheet URL in .env or session
+    if 'sheets_url' in st.session_state:
+        sheets_url = st.session_state['sheets_url']
+    else:
+        # Try to load from .env
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        sheets_url = os.getenv("SHEETS_URL", "")
+    
+    # If we have a URL, try to connect
+    if sheets_url:
+        tracker = get_tracker(sheets_url)
+        if tracker and tracker.authenticate():
+            if tracker.open_sheet(sheets_url):
+                st.session_state['sheets_url'] = sheets_url
+    
+    # Setup section
+    with st.expander("⚙️ Setup Sheets & Start Tracking", expanded=not tracker):
+        st.markdown("""
+        ### Getting Started with Google Sheets
+        
+        #### Option 1: Create a New Sheet (Recommended)
+        """)
+        
+        if st.button("🆕 Create New Investment Tracker Sheet", use_container_width=True):
+            tracker = get_tracker()
+            if tracker and tracker.authenticate():
+                sheet_url = tracker.create_sheet("Investment Tracker - Digitrader")
+                if sheet_url:
+                    st.session_state['sheets_url'] = sheet_url
+                    os.environ['SHEETS_URL'] = sheet_url
+                    st.success(f"✅ Sheet created! 🎉\n\n**Your Sheet URL:**\n{sheet_url}")
+                    st.info("📌 Bookmark this URL or save it somewhere safe!")
+                    st.rerun()
+            else:
+                st.error("❌ Failed to authenticate. Check credentials setup in SHEETS_SETUP.md")
+        
+        st.markdown("#### Option 2: Connect Existing Sheet")
+        sheet_url_input = st.text_input("📋 Paste your Google Sheet URL here:")
+        if sheet_url_input and st.button("🔗 Connect", use_container_width=True):
+            tracker = get_tracker(sheet_url_input)
+            if tracker and tracker.authenticate():
+                if tracker.open_sheet(sheet_url_input):
+                    st.session_state['sheets_url'] = sheet_url_input
+                    os.environ['SHEETS_URL'] = sheet_url_input
+                    st.success("✅ Connected to sheet!")
+                    st.rerun()
+            else:
+                st.error("❌ Failed to connect. Make sure credentials are set up.")
+        
+        st.markdown("---")
+        st.markdown("""
+        #### Setup Instructions:
+        1. **Download credentials**: [Google Cloud Console](https://console.cloud.google.com/)
+        2. **Save credentials**: Place `google_credentials.json` in project root
+        3. **Read guide**: See SHEETS_SETUP.md for detailed instructions
+        """)
+        
+        if st.button("📖 Open Setup Guide"):
+            st.info("""
+            **Google Sheets Integration Setup:**
+            
+            See SHEETS_SETUP.md in the project root for:
+            - Step-by-step Google Cloud setup
+            - Service account creation
+            - Credentials configuration
+            - Troubleshooting guide
+            """)
+    
+    # Main tracking interface (only if connected)
+    if tracker and sheets_url:
+        st.success(f"✅ Connected! Sheet: {sheets_url}")
+        st.markdown("---")
+        
+        # Tabs for different tracking functions
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "📊 Log Search", "💰 Log Investment", "📈 Daily Analysis", 
+            "📋 Portfolio", "📜 History"
+        ])
+        
+        # --- Tab 1: Log Stock Search
+        with tab1:
+            st.markdown("#### 📊 Log Stock Search")
+            st.caption("Save your stock analysis to the sheets")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                search_symbol = st.selectbox("🏢 Select Stock", stock_list, key="track_symbol")
+                search_amount = st.number_input("💰 Potential Investment (₹)", min_value=0, value=1000, step=100)
+            with col2:
+                search_horizon = st.selectbox("⏳ Horizon", ["Intraday", "Swing", "Long-Term"], key="track_horizon")
+            
+            if st.button("📌 Get & Log Analysis", use_container_width=True):
+                with st.spinner("Fetching analysis..."):
+                    pred = get_stock_predictions(search_symbol, search_amount, search_horizon)
+                
+                col_a, col_b, col_c, col_d = st.columns(4)
+                with col_a:
+                    st.metric("Trend", pred['trend'])
+                with col_b:
+                    st.metric("Confidence", f"{float(pred['confidence'])*100:.1f}%")
+                with col_c:
+                    st.metric("Current Price", f"₹{pred['current_price']:.2f}")
+                with col_d:
+                    st.metric("Predicted Price", f"₹{pred.get('predicted_price', 0):.2f}" if pred.get('predicted_price') else "N/A")
+                
+                # Log to sheets button
+                if st.button("💾 Save to Sheets", use_container_width=True, key="log_search"):
+                    if tracker.log_search(
+                        symbol=search_symbol,
+                        trend=pred['trend'],
+                        confidence=pred['confidence'],
+                        current_price=pred['current_price'],
+                        predicted_price=pred.get('predicted_price', 0),
+                        expected_return=pred.get('predicted_return_pct', 0),
+                        sentiment=pred['sentiment']
+                    ):
+                        st.success(f"✅ Logged: {search_symbol} ({pred['trend']})")
+        
+        # --- Tab 2: Log Investment
+        with tab2:
+            st.markdown("#### 💰 Log Investment")
+            st.caption("Record your stock purchases")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                inv_symbol = st.selectbox("🏢 Stock", stock_list, key="inv_symbol")
+                inv_amount = st.number_input("💵 Investment Amount (₹)", min_value=100, value=5000, step=100)
+            with col2:
+                inv_price = st.number_input("💹 Entry Price (₹)", min_value=1.0, value=1000.0, step=0.5)
+                inv_horizon = st.selectbox("⏳ Horizon", ["Intraday", "Swing", "Long-Term"], key="inv_horizon")
+            with col3:
+                inv_qty = inv_amount / inv_price
+                st.metric("Quantity", f"{inv_qty:.2f} shares")
+                st.metric("With Entry Price", f"₹{inv_price:.2f}")
+            
+            if st.button("💾 Log Investment", use_container_width=True, key="log_inv"):
+                if tracker.log_investment(inv_symbol, inv_amount, inv_price, inv_horizon):
+                    st.success(f"✅ Logged: {inv_symbol} @ ₹{inv_price:.2f}")
+                    if st.button("Update Portfolio Now"):
+                        tracker.update_portfolio(inv_symbol, inv_qty, inv_price, inv_amount)
+                        st.success("📊 Portfolio updated!")
+        
+        # --- Tab 3: Daily Analysis
+        with tab3:
+            st.markdown("#### 📈 Daily Portfolio Analysis")
+            st.caption("Log today's portfolio snapshot for daily tracking")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                daily_invested = st.number_input("💰 Total Invested Today (₹)", min_value=0, value=50000, step=1000)
+            with col2:
+                daily_current = st.number_input("📊 Current Portfolio Value (₹)", min_value=0, value=52000, step=1000)
+            with col3:
+                daily_best = st.text_input("📈 Best Performer Today", "RELIANCE.NS")
+            with col4:
+                daily_worst = st.text_input("📉 Worst Performer Today", "N/A")
+            
+            daily_notes = st.text_area("📝 Notes", "Market analysis, key events, etc.", height=80)
+            
+            pnl = daily_current - daily_invested
+            ret_pct = (pnl / daily_invested * 100) if daily_invested > 0 else 0
+            
+            col_stat1, col_stat2, col_stat3 = st.columns(3)
+            with col_stat1:
+                st.metric("Daily P&L", f"₹{pnl:+,.0f}", f"{ret_pct:+.2f}%", delta_color="normal" if pnl >= 0 else "inverse")
+            with col_stat2:
+                pnl_color = "🟢" if pnl >= 0 else "🔴"
+                st.markdown(f"{pnl_color} **{ret_pct:+.2f}%**")
+            with col_stat3:
+                st.markdown(f"Value: **₹{daily_current:,.0f}**")
+            
+            if st.button("📈 Log Daily Analysis", use_container_width=True, key="log_daily"):
+                if tracker.log_daily_analysis(daily_invested, daily_current, daily_best, daily_worst, daily_notes):
+                    st.success("✅ Daily analysis logged!")
+        
+        # --- Tab 4: Portfolio
+        with tab4:
+            st.markdown("#### 📋 Current Portfolio")
+            st.caption("Your active holdings")
+            
+            portfolio_df = tracker.get_portfolio()
+            
+            if not portfolio_df.empty:
+                # Display as styled table
+                st.dataframe(portfolio_df, use_container_width=True, height=400)
+                
+                # Summary
+                col_s1, col_s2, col_s3 = st.columns(3)
+                try:
+                    total_investment = float(portfolio_df['Investment (₹)'].astype(str).str.replace(',', '').sum())
+                    total_value = float(portfolio_df['Current Value (₹)'].astype(str).str.replace(',', '').sum())
+                    total_pnl = total_value - total_investment
+                    total_return = (total_pnl / total_investment * 100) if total_investment > 0 else 0
+                    
+                    with col_s1:
+                        st.metric("Total Invested", f"₹{total_investment:,.0f}")
+                    with col_s2:
+                        st.metric("Current Value", f"₹{total_value:,.0f}")
+                    with col_s3:
+                        st.metric("Total P&L", f"₹{total_pnl:+,.0f}", f"{total_return:+.2f}%", 
+                                 delta_color="normal" if total_pnl >= 0 else "inverse")
+                except:
+                    st.info("Waiting for portfolio data...")
+                
+                # Update individual holding
+                st.markdown("---")
+                st.markdown("#### ✏️ Update Holdings")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    upd_symbol = st.selectbox("Select Stock", portfolio_df['Symbol'].tolist() if not portfolio_df.empty else ["N/A"])
+                with col2:
+                    upd_price = st.number_input("Current Price (₹)", min_value=1.0, value=1000.0, step=0.5)
+                with col3:
+                    if st.button("🔄 Update Price"):
+                        # Find shares and investment
+                        sym_data = portfolio_df[portfolio_df['Symbol'] == upd_symbol]
+                        if not sym_data.empty:
+                            shares = float(sym_data['Shares'].iloc[0])
+                            investment = float(sym_data['Investment (₹)'].iloc[0])
+                            tracker.update_portfolio(upd_symbol, shares, upd_price, investment)
+                            st.success(f"✅ Updated {upd_symbol}")
+                            st.rerun()
+            else:
+                st.info("📋 No portfolio data yet. Log an investment to start!")
+        
+        # --- Tab 5: History & Analysis
+        with tab5:
+            st.markdown("#### 📜 Search & Analysis History")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                days_filter = st.slider("📅 Last N days", 1, 90, 7)
+            with col2:
+                if st.button("🔄 Refresh Data"):
+                    st.rerun()
+            
+            # Recent searches
+            st.markdown("##### 📊 Recent Searches")
+            searches_df = tracker.get_searches(days=days_filter)
+            if not searches_df.empty:
+                st.dataframe(searches_df, use_container_width=True, height=250)
+                
+                # Summary stats
+                col_x1, col_x2, col_x3 = st.columns(3)
+                with col_x1:
+                    bullish = len(searches_df[searches_df['Trend'].str.contains('Bullish', na=False)])
+                    st.metric("Bullish Signals", bullish)
+                with col_x2:
+                    bearish = len(searches_df[searches_df['Trend'].str.contains('Bearish', na=False)])
+                    st.metric("Bearish Signals", bearish)
+                with col_x3:
+                    avg_conf = searches_df['Confidence (%)'].apply(lambda x: float(str(x).replace('%', '')) if x else 0).mean()
+                    st.metric("Avg Confidence", f"{avg_conf:.1f}%")
+            else:
+                st.info("No searches logged yet.")
+            
+            # Daily analysis history
+            st.markdown("##### 📈 Daily Analysis History")
+            analysis_df = tracker.get_daily_analysis(days=days_filter)
+            if not analysis_df.empty:
+                st.dataframe(analysis_df, use_container_width=True, height=250)
+                
+                # Plot trend
+                try:
+                    analysis_df['Date'] = pd.to_datetime(analysis_df['Date'])
+                    analysis_df['Overall Return (%)'] = analysis_df['Overall Return (%)'].astype(float)
+                    
+                    fig_trend = go.Figure()
+                    fig_trend.add_trace(go.Scatter(
+                        x=analysis_df['Date'], 
+                        y=analysis_df['Overall Return (%)'],
+                        mode='lines+markers',
+                        name='Portfolio Return %',
+                        line=dict(color='#667eea', width=3),
+                        fill='tozeroy',
+                    ))
+                    fig_trend.update_layout(
+                        title="Portfolio Return Trend",
+                        template="plotly_dark",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(15,15,35,0.8)",
+                        height=350,
+                        xaxis_title="Date",
+                        yaxis_title="Return (%)",
+                        font=dict(color="#ccc"),
+                    )
+                    st.plotly_chart(fig_trend, use_container_width=True)
+                except:
+                    pass
+            else:
+                st.info("No daily analysis logged yet.")
+    else:
+        st.warning("⚠️ Please connect to a Google Sheet first to start tracking!")
+        st.info("""
+        **Next Steps:**
+        1. Expand **"⚙️ Setup Sheets & Start Tracking"** above
+        2. Click **"🆕 Create New Investment Tracker Sheet"**
+        3. Come back here to start logging!
+        """)
+
+# =====================================================================
+# 📋 PAGE 6: BROWSE ALL NSE STOCKS
 # =====================================================================
 elif page == "📋 Browse All Stocks":
     st.markdown('<p class="main-title">Browse All NSE Stocks</p>', unsafe_allow_html=True)
