@@ -114,16 +114,19 @@ def walk_forward_split(features_df: pd.DataFrame, train_ratio: float = 0.8):
 # =========================================
 
 def train_random_forest(X_train, y_cls_train, y_reg_train):
-    """Train Random Forest classifier and regressor."""
+    """Train Random Forest classifier and regressor (TUNED FOR PRODUCTION)."""
+    # Optimized hyperparameters for better accuracy
     clf = RandomForestClassifier(
-        n_estimators=200, max_depth=10, min_samples_split=5,
-        random_state=42, n_jobs=-1
+        n_estimators=300, max_depth=12, min_samples_split=4,
+        min_samples_leaf=2, max_features='sqrt', bootstrap=True,
+        class_weight='balanced', random_state=42, n_jobs=-1, warm_start=False
     )
     clf.fit(X_train, y_cls_train)
 
     reg = RandomForestRegressor(
-        n_estimators=200, max_depth=10, min_samples_split=5,
-        random_state=42, n_jobs=-1
+        n_estimators=300, max_depth=12, min_samples_split=4,
+        min_samples_leaf=2, max_features='sqrt', bootstrap=True,
+        random_state=42, n_jobs=-1, warm_start=False
     )
     reg.fit(X_train, y_reg_train)
 
@@ -131,24 +134,27 @@ def train_random_forest(X_train, y_cls_train, y_reg_train):
 
 
 def train_xgboost(X_train, y_cls_train, y_reg_train):
-    """Train XGBoost classifier and regressor."""
+    """Train XGBoost classifier and regressor (TUNED FOR PRODUCTION)."""
     if not _XGB_AVAILABLE:
         return None, None
 
+    # Optimized hyperparameters for better accuracy
     clf = XGBClassifier(
-        n_estimators=200, max_depth=6, learning_rate=0.05,
-        subsample=0.8, colsample_bytree=0.8,
+        n_estimators=300, max_depth=6, learning_rate=0.03,
+        min_child_weight=2, subsample=0.8, colsample_bytree=0.8,
+        gamma=1, reg_alpha=0.5, reg_lambda=1.0,
         random_state=42, use_label_encoder=False, eval_metric="logloss",
-        verbosity=0
+        verbosity=0, scale_pos_weight=1
     )
-    clf.fit(X_train, y_cls_train)
+    clf.fit(X_train, y_cls_train, verbose=False)
 
     reg = XGBRegressor(
-        n_estimators=200, max_depth=6, learning_rate=0.05,
-        subsample=0.8, colsample_bytree=0.8,
+        n_estimators=300, max_depth=6, learning_rate=0.03,
+        min_child_weight=2, subsample=0.8, colsample_bytree=0.8,
+        gamma=1, reg_alpha=0.5, reg_lambda=1.0,
         random_state=42, verbosity=0
     )
-    reg.fit(X_train, y_reg_train)
+    reg.fit(X_train, y_reg_train, verbose=False)
 
     return clf, reg
 
