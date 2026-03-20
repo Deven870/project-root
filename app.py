@@ -10,6 +10,7 @@ from modules.utils import (
     get_nse_stock_list,
     fetch_price_data,
 )
+from modules.trading_dashboard import render_trading_dashboard
 
 # =========================
 # 🧩 Streamlit Setup
@@ -157,7 +158,7 @@ with st.sidebar:
     st.markdown("## 🚀 **Digitrader**")
     st.caption("Smart Trading Assistant")
     st.markdown("---")
-    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results", "� Tracking Dashboard", "�📋 Browse All Stocks"], label_visibility="collapsed")
+    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results", "📊 Tracking Dashboard", "💰 Risk & P&L", "📋 Browse All Stocks"], label_visibility="collapsed")
     st.markdown("---")
     st.markdown("##### ⏰ Market Hours")
     st.caption("NSE: Mon–Fri, 9:15 AM – 3:30 PM IST")
@@ -1438,7 +1439,15 @@ elif page == "📊 Tracking Dashboard":
         """)
 
 # =====================================================================
-# 📋 PAGE 6: BROWSE ALL NSE STOCKS
+# � PAGE 6: RISK & P&L DASHBOARD
+# =====================================================================
+elif page == "📊 Risk & P&L":
+    st.markdown('<p class="main-title">💰 Risk & P&L Tracker</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Real-time position tracking, risk management & safety guardrails</p>', unsafe_allow_html=True)
+    render_trading_dashboard()
+
+# =====================================================================
+# 📋 PAGE 7: BROWSE ALL NSE STOCKS
 # =====================================================================
 elif page == "📋 Browse All Stocks":
     st.markdown('<p class="main-title">Browse All NSE Stocks</p>', unsafe_allow_html=True)
