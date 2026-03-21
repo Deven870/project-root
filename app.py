@@ -11,6 +11,12 @@ from modules.utils import (
     fetch_price_data,
 )
 from modules.trading_dashboard import render_trading_dashboard
+from modules.config_validator import validate_startup
+
+# =========================
+# 🔐 Configuration Validation (Startup Check)
+# =========================
+is_valid, config = validate_startup()
 
 # =========================
 # 🧩 Streamlit Setup
