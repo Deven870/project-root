@@ -22,7 +22,16 @@ tokenizer_finbert = None
 model_finbert = None
 labels = ["negative", "neutral", "positive"]
 
-def analyze_finbert(text):
+def analyze_finbert(text: str) -> dict:
+    """
+    Analyze financial sentiment using FinBERT model.
+    
+    Args:
+        text: Input text to analyze
+        
+    Returns:
+        Dictionary with sentiment scores: {negative, neutral, positive}
+    """
     global tokenizer_finbert, model_finbert
     if tokenizer_finbert is None or model_finbert is None:
         try:
@@ -41,7 +50,16 @@ def analyze_finbert(text):
         print(f"FinBERT analysis error: {e}")
         return {"negative": 0.0, "neutral": 1.0, "positive": 0.0}
 
-def analyze_general_sentiment(text):
+def analyze_general_sentiment(text: str) -> dict:
+    """
+    Analyze general sentiment using TextBlob or rule-based fallback.
+    
+    Args:
+        text: Input text to analyze
+        
+    Returns:
+        Dictionary with sentiment scores: {negative, neutral, positive}
+    """
     if _TEXTBLOB_AVAILABLE:
         try:
             blob = TextBlob(text)
@@ -66,7 +84,16 @@ def analyze_general_sentiment(text):
     else:
         return {"negative": 0, "neutral": 1, "positive": 0}
 
-def analyze_hybrid_sentiment(text):
+def analyze_hybrid_sentiment(text: str) -> dict:
+    """
+    Analyze sentiment using hybrid approach: 70% FinBERT + 30% general sentiment.
+    
+    Args:
+        text: Input text to analyze
+        
+    Returns:
+        Dictionary with hybrid sentiment scores: {negative, neutral, positive}
+    """
     fin = analyze_finbert(text)
     gen = analyze_general_sentiment(text)
     try:
@@ -75,7 +102,18 @@ def analyze_hybrid_sentiment(text):
         # If fin or gen returns a scalar, fallback to combining as proportions
         hybrid = {"positive": 0.0, "neutral": 1.0, "negative": 0.0}
     return hybrid
-
+: str, from_days: int = 7, max_articles: int = 20) -> list:
+    """
+    Fetch recent news articles for a stock using NewsAPI.
+    
+    Args:
+        stock_ticker: Stock symbol to search for
+        from_days: Number of days to look back (default: 7)
+        max_articles: Maximum articles to retrieve (default: 20)
+        
+    Returns:
+        List of articles with title and URL
+    """
 # ------------------------------
 # News fetching (from Finnhub via finnhub_feed module)
 # ------------------------------

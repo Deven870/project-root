@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 # =========================================
 # Buy and Hold Strategy
 # =========================================
-
+#analysis of buy and hold strategy, which is the simplest trading strategy where you buy at the beginning and hold until the end. This serves as a benchmark for evaluating more complex strategies.
 def buy_and_hold_baseline(prices: pd.Series) -> Dict:
     """
     Buy and Hold baseline - simplest strategy.

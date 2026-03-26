@@ -4,7 +4,7 @@ A Streamlit-based stock trading assistant for NSE (National Stock Exchange) stoc
 
 ## What This Project Does
 
-1. **Collects data**
+1. **Collects data AND PROCESS**
    - Pulls historical prices via `yfinance`.
    - Retrieves news headlines via Finnhub.
 
