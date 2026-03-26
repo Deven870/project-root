@@ -281,3 +281,116 @@ def save_results(results_dict: dict, output_dir: str = "results"):
                 json.dump(clean, f, indent=2)
 
     print(f"Results saved to {output_dir}/")
+
+
+# =========================================
+# P&L Dashboard Integration
+# =========================================
+
+def calculate_pnl_summary(trades_list):
+    """
+    Calculate P&L summary statistics from a list of trades.
+    
+    Parameters
+    ----------
+    trades_list : list of dicts
+        Each dict has: entry_time, entry_price, exit_time, exit_price, qty, status
+    
+    Returns
+    -------
+    dict with P&L metrics for Google Sheets dashboard
+    """
+    if not trades_list:
+        return {
+            "total_trades": 0,
+            "winners": 0,
+            "losers": 0,
+            "win_rate": 0.0,
+            "total_pnl": 0.0,
+            "avg_win": 0.0,
+            "avg_loss": 0.0,
+            "profit_factor": 0.0
+        }
+    
+    pnl_list = []
+    winners = 0
+    losers = 0
+    
+    for trade in trades_list:
+        if trade.get("status") == "CLOSED":
+            entry_price = float(trade.get("entry_price", 0))
+            exit_price = float(trade.get("exit_price", 0))
+            qty = float(trade.get("qty", 0))
+            
+            pnl = (exit_price - entry_price) * qty
+            pnl_list.append(pnl)
+            
+            if pnl > 0:
+                winners += 1
+            elif pnl < 0:
+                losers += 1
+    
+    total_trades = len(pnl_list)
+    total_pnl = sum(pnl_list)
+    
+    if total_trades == 0:
+        return {
+            "total_trades": 0,
+            "winners": 0,
+            "losers": 0,
+            "win_rate": 0.0,
+            "total_pnl": 0.0,
+            "avg_win": 0.0,
+            "avg_loss": 0.0,
+            "profit_factor": 0.0
+        }
+    
+    win_rate = (winners / total_trades) * 100 if total_trades > 0 else 0.0
+    
+    winning_trades = [p for p in pnl_list if p > 0]
+    losing_trades = [p for p in pnl_list if p < 0]
+    
+    avg_win = sum(winning_trades) / len(winning_trades) if winning_trades else 0.0
+    avg_loss = sum(losing_trades) / len(losing_trades) if losing_trades else 0.0
+    
+    # Profit factor = total wins / total losses (absolute value)
+    profit_factor = abs(sum(winning_trades) / sum(losing_trades)) if losing_trades else 0.0
+    
+    return {
+        "total_trades": int(total_trades),
+        "winners": int(winners),
+        "losers": int(losers),
+        "win_rate": round(win_rate, 2),
+        "total_pnl": round(total_pnl, 2),
+        "avg_win": round(avg_win, 2),
+        "avg_loss": round(avg_loss, 2),
+        "profit_factor": round(profit_factor, 2)
+    }
+
+
+def push_pnl_to_sheets(trades_list, push=True):
+    """
+    Calculate P&L from trades list and push to Google Sheets dashboard.
+    
+    Parameters
+    ----------
+    trades_list : list of dicts
+        Trade history
+    push : bool
+        Whether to actually push to sheets
+    
+    Returns
+    -------
+    dict with P&L metrics
+    """
+    pnl_data = calculate_pnl_summary(trades_list)
+    
+    if push:
+        try:
+            from modules.google_sheets import update_pnl_dashboard
+            update_pnl_dashboard(pnl_data)
+            print(f"✓ Updated P&L Dashboard: {pnl_data}")
+        except Exception as e:
+            print(f"Warning: Could not push P&L to Google Sheets: {e}")
+    
+    return pnl_data
