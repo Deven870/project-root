@@ -12,11 +12,19 @@ load_dotenv()
 # ===== Stock Market Settings =====
 STOCK_SYMBOL = os.getenv("STOCK_SYMBOL", "RELIANCE.NS")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
+FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY", "")
 DEFAULT_LOOKBACK_DAYS = int(os.getenv("DEFAULT_LOOKBACK_DAYS", "365"))
 
 # ===== Google Sheets Settings =====
+GOOGLE_SHEETS_ID = os.getenv("GOOGLE_SHEETS_ID", "")
+GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH", "credentials.json")
 SHEETS_URL = os.getenv("SHEETS_URL", "")
-GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_CREDENTIALS_PATH", "./google_credentials.json")
+
+# ===== Telegram & Email Alerts =====
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS", "")
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
 
 # ===== Feature Flags =====
 ENABLE_SENTIMENT_ANALYSIS = os.getenv("ENABLE_SENTIMENT_ANALYSIS", "true").lower() == "true"

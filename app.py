@@ -10,18 +10,29 @@ from modules.utils import (
     get_nse_stock_list,
     fetch_price_data,
 )
-from modules.trading_dashboard import render_trading_dashboard
-from modules.config_validator import validate_startup
+from modules.scheduler import start_scheduler, get_scheduler_status
 
-# =========================
-# 🔐 Configuration Validation (Startup Check)
-# =========================
-is_valid, config = validate_startup()
+try:
+    from modules.trading_dashboard import render_trading_dashboard
+    from modules.config_validator import validate_startup
+    is_valid, config = validate_startup()
+except ImportError:
+    # Optional modules not available
+    pass
 
 # =========================
 # 🧩 Streamlit Setup
 # =========================
 st.set_page_config(page_title="Digitrader — Smart Trading Assistant", page_icon="🚀", layout="wide")
+
+# Start scheduler only once per Streamlit session.
+if "digitrader_scheduler_started" not in st.session_state:
+    try:
+        st.session_state["digitrader_scheduler"] = start_scheduler()
+        st.session_state["digitrader_scheduler_started"] = True
+    except Exception as e:
+        st.session_state["digitrader_scheduler_started"] = False
+        st.session_state["digitrader_scheduler_error"] = str(e)
 
 # =========================
 # 🎨 Custom CSS for eye-catching UI
@@ -165,6 +176,56 @@ with st.sidebar:
     st.caption("Smart Trading Assistant")
     st.markdown("---")
     page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results", "📊 Tracking Dashboard", "💰 Risk & P&L", "📋 Browse All Stocks"], label_visibility="collapsed")
+    st.markdown("---")
+    
+    # --- Automation Status Panel
+    st.markdown("##### 🤖 Automation Status")
+    try:
+        status = get_scheduler_status()
+        is_running = status.get('is_running', False)
+        job_last_run = status.get('job_last_run', {})
+        
+        # Scheduler status indicator
+        if is_running:
+            st.success("🟢 **Running**")
+        else:
+            st.warning("🔴 **Not Running**")
+        
+        # Job details
+        from datetime import datetime
+        import pytz
+        IST = pytz.timezone("Asia/Kolkata")
+        
+        st.markdown("###### Last Run Times")
+        job_labels = {
+            "morning_scan": "🌅 Morning Scan",
+            "check_signals_live": "⚡ Live Signals",
+            "check_stoploss_breaches": "🛑 SL Monitor",
+            "refresh_open_trade_prices": "💹 Price Refresh",
+            "eod_report": "📊 EOD Report",
+        }
+        
+        for job_id, label in job_labels.items():
+            last_run = job_last_run.get(job_id)
+            if last_run:
+                # Calculate time since last run
+                now_ist = datetime.now(IST)
+                delta = now_ist - last_run
+                mins_ago = delta.total_seconds() / 60
+                if mins_ago < 1:
+                    time_str = "< 1 min ago"
+                elif mins_ago < 60:
+                    time_str = f"{int(mins_ago)} min ago"
+                else:
+                    hours_ago = mins_ago / 60
+                    time_str = f"{int(hours_ago)}h ago"
+                st.caption(f"{label}: {time_str}")
+            else:
+                st.caption(f"{label}: _pending_")
+                
+    except Exception as e:
+        st.caption(f"⚠️ Status unavailable ({str(e)[:30]})")
+    
     st.markdown("---")
     st.markdown("##### ⏰ Market Hours")
     st.caption("NSE: Mon–Fri, 9:15 AM – 3:30 PM IST")

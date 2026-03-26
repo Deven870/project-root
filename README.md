@@ -6,7 +6,7 @@ A Streamlit-based stock trading assistant for NSE (National Stock Exchange) stoc
 
 1. **Collects data AND PROCESS**
    - Pulls historical prices via `yfinance`.
-   - Retrieves news headlines via NewsAPI.
+   - Retrieves news headlines via Finnhub.
 
 2. **Builds features**
    - Technical indicators and time-series features.
@@ -53,7 +53,7 @@ A Streamlit-based stock trading assistant for NSE (National Stock Exchange) stoc
 | UI              | Streamlit                         |
 | Market Data     | yfinance                          |
 | Sentiment       | FinBERT (transformers) + TextBlob |
-| News            | NewsAPI                           |
+| News            | Finnhub                           |
 | ML Predictions  | scikit-learn, pandas, numpy       |
 | Charts          | Plotly                            |
 
@@ -80,12 +80,18 @@ A Streamlit-based stock trading assistant for NSE (National Stock Exchange) stoc
 4. **Configure environment variables**
    Create a `.env` file in the project root:
    ```env
-   NEWS_API_KEY=your_newsapi_key_here
+   FINNHUB_API_KEY=d72bblpr01qqkte0bpdgd72bblpr01qqkte0bpe0
    STOCK_SYMBOL=RELIANCE.NS
    ```
-   Get a free API key from [newsapi.org](https://newsapi.org/).
+   Get a free API key from [finnhub.io](https://finnhub.io/).
 
-5. **Run the app**
+5. **[Optional] Set up Google Sheets integration**
+   For real-time data tracking across 5 tabs (Live Signals, My Trades, P&L Dashboard, News Feed, Config):
+   - Follow the [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md) guide
+   - Add `SHEETS_ID` and `SERVICE_ACCOUNT_FILE` to `.env`
+   - Uses batching to stay within free tier (300 req/min)
+
+6. **Run the app**
    ```bash
    streamlit run app.py
    ```
@@ -111,24 +117,26 @@ python run_experiments.py
 
 ```
 project-root/
-├── app.py                  # Streamlit UI (main entry point)
-├── main.py                 # CLI script for quick analysis
-├── run_experiments.py      # Reproducible research experiments
-├── config.py               # Loads environment variables
-├── requirements.txt        # Python dependencies
-├── RESEARCH_QUICKSTART.md  # How to run research experiments
-├── RESEARCH_READINESS.md   # Research gaps and roadmap
+├── app.py                      # Streamlit UI (main entry point)
+├── main.py                     # CLI script for quick analysis
+├── run_experiments.py          # Reproducible research experiments
+├── config.py                   # Loads environment variables
+├── requirements.txt            # Python dependencies
+├── RESEARCH_QUICKSTART.md      # How to run research experiments
+├── RESEARCH_READINESS.md       # Research gaps and roadmap
+├── GOOGLE_SHEETS_SETUP.md      # Real-time data tracking setup
 └── modules/
     ├── __init__.py
-    ├── backtester.py           # Backtesting and trading simulation
-    ├── baseline_models.py      # Baseline strategies
-    ├── data_fetch.py           # Stock data and news fetching
-    ├── feature_engineering.py  # Technical indicators and features
-    ├── predictive_ml.py        # Model training and evaluation
-    ├── predictor.py            # Lightweight trend predictor
-    ├── sentiment_engine.py     # FinBERT + TextBlob sentiment
-    ├── statistical_tests.py    # Significance testing and CIs
-    └── utils.py                # Core business logic and helpers
+    ├── backtester.py               # Backtesting and trading simulation
+    ├── baseline_models.py          # Baseline strategies
+    ├── data_fetch.py               # Stock data and news fetching
+    ├── feature_engineering.py      # Technical indicators and features
+    ├── google_sheets.py            # Google Sheets integration (5 tabs)
+    ├── predictive_ml.py            # Model training and evaluation
+    ├── predictor.py                # Lightweight trend predictor
+    ├── sentiment_engine.py         # FinBERT + TextBlob sentiment
+    ├── statistical_tests.py        # Significance testing and CIs
+    └── utils.py                    # Core business logic and helpers
 ```
 
 ## Research Notes
