@@ -1,0 +1,103 @@
+{
+  "date": "2026-04-01",
+  "timestamp": "2026-04-01 08:30:15 IST",
+  "signals": [
+    {
+      "ticker": "RELIANCE.NS",
+      "prediction": 1,
+      "trend": "BULLISH",
+      "confidence": 0.72,
+      "expected_return": 0.025,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 1369.2
+    },
+    {
+      "ticker": "TCS.NS",
+      "prediction": 1,
+      "trend": "BULLISH",
+      "confidence": 0.68,
+      "expected_return": 0.018,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 2408.2
+    },
+    {
+      "ticker": "INFY.NS",
+      "prediction": 0,
+      "trend": "NEUTRAL",
+      "confidence": 0.55,
+      "expected_return": 0.0,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 1275.7
+    },
+    {
+      "ticker": "HDFCBANK.NS",
+      "prediction": -1,
+      "trend": "BEARISH",
+      "confidence": 0.65,
+      "expected_return": -0.015,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 742.25
+    },
+    {
+      "ticker": "LT.NS",
+      "prediction": 1,
+      "trend": "BULLISH",
+      "confidence": 0.70,
+      "expected_return": 0.022,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 3150.50
+    },
+    {
+      "ticker": "WIPRO.NS",
+      "prediction": 0,
+      "trend": "NEUTRAL",
+      "confidence": 0.52,
+      "expected_return": 0.005,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 185.30
+    },
+    {
+      "ticker": "BAJAJFINSV.NS",
+      "prediction": 1,
+      "trend": "BULLISH",
+      "confidence": 0.75,
+      "expected_return": 0.030,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 1625.00
+    },
+    {
+      "ticker": "ITC.NS",
+      "prediction": -1,
+      "trend": "BEARISH",
+      "confidence": 0.60,
+      "expected_return": -0.012,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 430.75
+    },
+    {
+      "ticker": "MARUTI.NS",
+      "prediction": 0,
+      "trend": "NEUTRAL",
+      "confidence": 0.53,
+      "expected_return": 0.008,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 10250.25
+    },
+    {
+      "ticker": "ASIANPAINT.NS",
+      "prediction": 1,
+      "trend": "BULLISH",
+      "confidence": 0.69,
+      "expected_return": 0.020,
+      "timestamp": "2026-04-01 08:30:15 IST",
+      "last_close": 3185.50
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "total_buy": 4,
+    "total_sell": 2,
+    "total_hold": 4,
+    "avg_confidence": 0.64
+  }
+}

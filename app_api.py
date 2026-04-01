@@ -43,6 +43,17 @@ from telegram_signal_bot import TelegramBot, load_daily_signals
 
 IST = pytz.timezone("Asia/Kolkata")
 
+# Initialize logger FIRST (before any other code)
+logger = logging.getLogger('VoiceBot-API')
+logger.setLevel(logging.INFO)
+
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
 # Flask app
 app = Flask(__name__)
 CORS(app)
@@ -66,8 +77,6 @@ telegram_bot = TelegramBot(
     os.getenv('TELEGRAM_BOT_TOKEN', ''),
     os.getenv('TELEGRAM_CHAT_ID', '')
 )
-
-logger = logging.getLogger('VoiceBot-API')
 
 
 # ============================================================================
