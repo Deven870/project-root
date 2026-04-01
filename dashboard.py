@@ -42,30 +42,39 @@ st.sidebar.title("⚙️ Dashboard Settings")
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_daily_signals():
     """Load today's signals from JSON."""
-    signals_file = Path("logs/daily_signals.json")
-    if signals_file.exists():
-        with open(signals_file, 'r') as f:
-            return json.load(f)
+    try:
+        signals_file = Path("logs/daily_signals.json")
+        if signals_file.exists() and signals_file.is_file():
+            with open(signals_file, 'r') as f:
+                return json.load(f)
+    except (PermissionError, json.JSONDecodeError, IOError) as e:
+        st.error(f"Could not load signals: {e}")
     return None
 
 
 @st.cache_data(ttl=300)
 def load_validation_tracker():
     """Load validation metrics."""
-    tracker_file = Path("logs/validation_tracker.json")
-    if tracker_file.exists():
-        with open(tracker_file, 'r') as f:
-            return json.load(f)
+    try:
+        tracker_file = Path("logs/validation_tracker.json")
+        if tracker_file.exists() and tracker_file.is_file():
+            with open(tracker_file, 'r') as f:
+                return json.load(f)
+    except (PermissionError, json.JSONDecodeError, IOError) as e:
+        st.warning(f"Could not load validation metrics: {e}")
     return None
 
 
 @st.cache_data(ttl=300)
 def load_paper_trading_history():
     """Load paper trading history."""
-    history_file = Path("logs/paper_trading.json")
-    if history_file.exists():
-        with open(history_file, 'r') as f:
-            return json.load(f)
+    try:
+        history_file = Path("logs/paper_trading.json")
+        if history_file.exists() and history_file.is_file():
+            with open(history_file, 'r') as f:
+                return json.load(f)
+    except (PermissionError, json.JSONDecodeError, IOError) as e:
+        st.warning(f"Could not load trading history: {e}")
     return None
 
 
