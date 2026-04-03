@@ -139,10 +139,7 @@ project-root/
     └── utils.py                    # Core business logic and helpers
 ```
 
-## Research Notes
 
-- For a step-by-step research workflow, see [RESEARCH_QUICKSTART.md](RESEARCH_QUICKSTART.md).
-- For readiness gaps and publication checklist, see [RESEARCH_READINESS.md](RESEARCH_READINESS.md).
 
 ## Disclaimer
 
