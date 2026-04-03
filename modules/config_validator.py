@@ -52,7 +52,7 @@ class CredentialsValidator:
         creds_path = self.settings["GOOGLE_CREDENTIALS_PATH"]
         
         if not os.path.exists(creds_path):
-            self.warnings.append(f"⚠️  Google credentials file not found at '{creds_path}'")
+            self.warnings.append(f"[WARNING] Google credentials file not found at '{creds_path}'")
             self.warnings.append("   Google Sheets integration will be DISABLED")
             self.warnings.append("   To enable: Follow instructions in SHEETS_SETUP.md")
             return False
@@ -63,18 +63,18 @@ class CredentialsValidator:
             
             required_fields = ["type", "project_id", "private_key_id"]
             if all(field in creds_data for field in required_fields):
-                logger.info(f"✅ Google credentials found: {creds_data.get('project_id')}")
+                logger.info(f"[OK] Google credentials found: {creds_data.get('project_id')}")
                 return True
             else:
-                self.errors.append(f"❌ Invalid Google credentials format in '{creds_path}'")
+                self.errors.append(f"[ERROR] Invalid Google credentials format in '{creds_path}'")
                 self.errors.append("   Required fields missing: type, project_id, private_key_id")
                 return False
         
         except json.JSONDecodeError:
-            self.errors.append(f"❌ Google credentials file is not valid JSON: '{creds_path}'")
+            self.errors.append(f"[ERROR] Google credentials file is not valid JSON: '{creds_path}'")
             return False
         except Exception as e:
-            self.errors.append(f"❌ Error reading Google credentials: {str(e)}")
+            self.errors.append(f"[ERROR] Error reading Google credentials: {str(e)}")
             return False
     
     def validate_newsapi_key(self):
@@ -82,17 +82,17 @@ class CredentialsValidator:
         api_key = self.settings["NEWS_API_KEY"]
         
         if not api_key or api_key == "your_newsapi_key_here":
-            self.warnings.append("⚠️  NEWS_API_KEY not configured")
+            self.warnings.append("[WARNING] NEWS_API_KEY not configured")
             if self.settings["ENABLE_SENTIMENT_ANALYSIS"]:
                 self.warnings.append("   Sentiment analysis will use fallback data sources")
                 self.warnings.append("   Get free key: https://newsapi.org/")
             return False
         
         if len(api_key) < 10:
-            self.warnings.append(f"⚠️  NEWS_API_KEY appears invalid (too short: {len(api_key)} chars)")
+            self.warnings.append(f"[WARNING] NEWS_API_KEY appears invalid (too short: {len(api_key)} chars)")
             return False
         
-        logger.info("✅ NEWS_API_KEY configured")
+        logger.info("[OK] NEWS_API_KEY configured")
         return True
     
     def validate_logging_config(self):
@@ -104,9 +104,9 @@ class CredentialsValidator:
             if log_dir and not os.path.exists(log_dir):
                 try:
                     os.makedirs(log_dir, exist_ok=True)
-                    logger.info(f"✅ Created logging directory: {log_dir}")
+                    logger.info(f"[OK] Created logging directory: {log_dir}")
                 except Exception as e:
-                    self.warnings.append(f"⚠️  Could not create log directory '{log_dir}': {e}")
+                    self.warnings.append(f"[WARNING] Could not create log directory '{log_dir}': {e}")
                     return False
         return True
     
@@ -115,10 +115,10 @@ class CredentialsValidator:
         issues = []
         
         if self.settings["ENABLE_LIVE_TRADING"] and not self.settings.get("BROKER_API_KEY"):
-            issues.append("❌ ENABLE_LIVE_TRADING=true but no broker API key configured")
+            issues.append("[ERROR] ENABLE_LIVE_TRADING=true but no broker API key configured")
         
         if self.settings["DEBUG_MODE"] and not os.getenv("RUNNING_CONTAINER"):
-            issues.append("⚠️  DEBUG_MODE=true - Consider setting to false for production")
+            issues.append("[WARNING] DEBUG_MODE=true - Consider setting to false for production")
         
         return issues
     
@@ -138,7 +138,7 @@ class CredentialsValidator:
         """Print validation report."""
         if self.errors:
             print("\n" + "="*70)
-            print("❌ CRITICAL ERRORS - Application cannot start:")
+            print("[ERROR] CRITICAL ERRORS - Application cannot start:")
             print("="*70)
             for error in self.errors:
                 print(error)
@@ -147,7 +147,7 @@ class CredentialsValidator:
         
         if self.warnings:
             print("\n" + "="*70)
-            print("⚠️  WARNINGS - Some features may be limited:")
+            print("[WARNING] WARNINGS - Some features may be limited:")
             print("="*70)
             for warning in self.warnings:
                 print(warning)
@@ -155,7 +155,7 @@ class CredentialsValidator:
         
         if not self.errors and not self.warnings:
             print("\n" + "="*70)
-            print("✅ All validations passed - Ready for deployment!")
+            print("[OK] All validations passed - Ready for deployment!")
             print("="*70 + "\n")
         
         return True
@@ -177,10 +177,10 @@ def validate_startup():
     has_errors = validator.full_validation()
     
     if validator.print_report() and not has_errors:
-        logger.info("✅ Configuration validation successful")
+        logger.info("[OK] Configuration validation successful")
         return True, validator.get_settings()
     else:
-        logger.error("❌ Configuration validation failed")
+        logger.error("[ERROR] Configuration validation failed")
         if has_errors:
             return False, validator.get_settings()
         return True, validator.get_settings()
