@@ -15,10 +15,59 @@ from modules.scheduler import start_scheduler, get_scheduler_status
 try:
     from modules.trading_dashboard import render_trading_dashboard
     from modules.config_validator import validate_startup
+    from modules.analytics_page import render_advanced_analytics
     is_valid, config = validate_startup()
 except ImportError:
     # Optional modules not available
     pass
+
+# =========================
+# 🛠️ Helper Functions
+# =========================
+def safe_format_value(value, format_str=None, default="[Data Unavailable]"):
+    """
+    Safely format a value, handling NaN, None, and invalid values.
+    
+    Parameters:
+    - value: The value to format
+    - format_str: Format string (e.g., "₹{:,.2f}", "{:.2f}%")
+    - default: Default string if value is missing
+    """
+    try:
+        # Check for None and NaN
+        if value is None:
+            return default
+        if isinstance(value, float) and (np.isnan(value) or np.isinf(value)):
+            return default
+        if isinstance(value, pd.Series):
+            if value.empty or np.isnan(value.iloc[0]):
+                return default
+            value = value.iloc[0]
+        
+        # Format if format_str provided
+        if format_str:
+            return format_str.format(value)
+        return str(value)
+    except Exception:
+        return default
+
+def clean_dataframe_nans(df):
+    """
+    Replace NaN values in a dataframe with '[N/A]' for display.
+    """
+    if df is None or df.empty:
+        return df
+    
+    df_clean = df.copy()
+    for col in df_clean.columns:
+        try:
+            # Replace NaN with '[N/A]'
+            df_clean[col] = df_clean[col].apply(
+                lambda x: '[N/A]' if (isinstance(x, float) and (np.isnan(x) or np.isinf(x))) or x is None else x
+            )
+        except Exception:
+            pass
+    return df_clean
 
 # =========================
 # 🧩 Streamlit Setup
@@ -175,7 +224,7 @@ with st.sidebar:
     st.markdown("## 🚀 **Digitrader**")
     st.caption("Smart Trading Assistant")
     st.markdown("---")
-    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "🔍 Stock Comparison", "📄 Research Results", "📊 Tracking Dashboard", "💰 Risk & P&L", "📋 Browse All Stocks"], label_visibility="collapsed")
+    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "� Advanced Analytics", "�🔍 Stock Comparison", "📄 Research Results", "📊 Tracking Dashboard", "💰 Risk & P&L", "📋 Browse All Stocks"], label_visibility="collapsed")
     st.markdown("---")
     
     # --- Automation Status Panel
@@ -302,20 +351,25 @@ if page == "📊 Trading Dashboard":
         # ===== Metric Cards Row =====
         m1, m2, m3, m4 = st.columns(4)
         with m1:
-            st.metric("Current Price", f"₹{current_price:,.2f}")
+            current_price_display = safe_format_value(current_price, "₹{:,.2f}" if current_price and current_price > 0 else None)
+            st.metric("Current Price", current_price_display)
         with m2:
-            if predicted_price is not None:
+            if predicted_price is not None and not (isinstance(predicted_price, float) and np.isnan(predicted_price)):
                 delta_val = predicted_price - current_price
-                st.metric("Predicted Price", f"₹{predicted_price:,.2f}", delta=f"₹{delta_val:+,.2f}")
+                pred_price_display = safe_format_value(predicted_price, "₹{:,.2f}")
+                delta_display = safe_format_value(delta_val, "₹{:+,.2f}")
+                st.metric("Predicted Price", pred_price_display, delta=delta_display)
             else:
-                st.metric("Predicted Price", "N/A")
+                st.metric("Predicted Price", "[Data Unavailable]")
         with m3:
-            st.metric("Expected Return", f"{predicted_return_pct:+.2f}%")
+            return_display = safe_format_value(predicted_return_pct, "{:+.2f}%") if predicted_return_pct or predicted_return_pct == 0 else "[Data Unavailable]"
+            st.metric("Expected Return", return_display)
         with m4:
-            if stop_loss is not None:
-                st.metric("Stop Loss", f"₹{stop_loss:,.2f}")
+            if stop_loss is not None and not (isinstance(stop_loss, float) and np.isnan(stop_loss)):
+                stop_loss_display = safe_format_value(stop_loss, "₹{:,.2f}")
+                st.metric("Stop Loss", stop_loss_display)
             else:
-                st.metric("Stop Loss", "N/A")
+                st.metric("Stop Loss", "[Data Unavailable]")
 
         st.markdown("")
 
@@ -569,15 +623,17 @@ elif page == "💼 Portfolio Suggestions":
 
     col_a, col_b = st.columns(2)
     with col_a:
-        total_amount = st.number_input("💰 Total Investment (₹)", min_value=100, value=10000, step=1)
-        horizon = st.selectbox("⏳ Investment Horizon", ["Intraday", "Swing", "Long-Term"])
+        total_amount = st.number_input("💰 Total Investment (₹)", min_value=100, value=50000, step=1000)
+        horizon = st.selectbox("⏳ Investment Horizon", ["Long-Term", "Swing", "Intraday"])
     with col_b:
-        allocation_mode = st.selectbox("🔧 Allocation Strategy", ["Proportional", "Equal", "Risk-adjusted"], index=0)
+        allocation_mode = st.selectbox("🎯 Allocation Strategy", 
+                                       ["Profit-Optimized", "Risk-adjusted", "Proportional", "Equal"],
+                                       help="Profit-Optimized: Max returns with medium risk")
         col_cap, col_topn = st.columns(2)
         with col_cap:
-            max_weight_pct = st.number_input("Max weight %", min_value=0.0, value=0.0, step=0.5, help="0 = no cap")
+            max_weight_pct = st.number_input("Max weight %", min_value=5, value=15, step=1, help="Medium risk: 15%")
         with col_topn:
-            show_top_n = st.number_input("Top N stocks", min_value=0, value=10, step=1, help="0 = all")
+            show_top_n = st.number_input("Top N stocks", min_value=5, value=10, step=1, help="Focused portfolio: 10")
 
     allocation_mode_key = allocation_mode.lower().replace('-', '_')
 
@@ -596,105 +652,126 @@ elif page == "💼 Portfolio Suggestions":
 
     st.markdown("")
 
-    if st.button("🚀 Generate Portfolio", use_container_width=True):
-        try:
-            portfolio = cached_portfolio(
-                total_amount, horizon, allocation_mode_key,
-                (None if show_top_n == 0 else int(show_top_n)),
-                (None if max_weight_pct == 0 else float(max_weight_pct)),
-            )
-            if portfolio:
-                df = pd.DataFrame(portfolio)
-                df = df.sort_values(by="Weight (%)", ascending=False).reset_index(drop=True)
+    if st.button("🚀 Generate Profit-Optimized Portfolio", use_container_width=True, key="gen_portfolio"):
+        with st.spinner("Analyzing stocks for maximum profit with medium risk..."):
+            try:
+                portfolio = cached_portfolio(
+                    total_amount, horizon, allocation_mode.lower().replace('-', '_'),
+                    int(show_top_n),
+                    float(max_weight_pct),
+                )
+                if portfolio:
+                    df = pd.DataFrame(portfolio)
+                    df = df.sort_values(by="Weight (%)", ascending=False).reset_index(drop=True)
 
-                total_profit = df["Expected Profit (₹)"].sum()
-                total_return_pct = (total_profit / total_amount) * 100
+                    total_profit = df["Expected Profit (Rs)"].sum() if "Expected Profit (Rs)" in df.columns else df["Expected Profit (₹)"].sum()
+                    total_return_pct = (total_profit / total_amount) * 100 if total_amount > 0 else 0
+                    
+                    # Risk metrics
+                    avg_volatility = df.get("Confidence", pd.Series([0])).mean() * 100 if "Confidence" in df.columns else 0
 
-                # ===== Summary Metrics =====
-                sm1, sm2, sm3, sm4 = st.columns(4)
-                with sm1:
-                    st.metric("Stocks Selected", len(df))
-                with sm2:
-                    st.metric("Total Investment", f"₹{total_amount:,.0f}")
-                with sm3:
-                    st.metric("Expected Profit", f"₹{total_profit:,.2f}", delta=f"{total_return_pct:+.2f}%")
-                with sm4:
-                    st.metric("Strategy", allocation_mode)
+                    # ===== Summary Metrics =====
+                    sm1, sm2, sm3, sm4 = st.columns(4)
+                    with sm1:
+                        st.metric("Stocks Selected", len(df))
+                    with sm2:
+                        st.metric("Total Investment", f"₹{total_amount:,.0f}")
+                    with sm3:
+                        color = "normal" if total_return_pct >= 0 else "inverse"
+                        st.metric("Expected Profit", f"₹{total_profit:,.2f}", 
+                                 delta=f"{total_return_pct:+.2f}%",
+                                 delta_color=color)
+                    with sm4:
+                        st.metric("Strategy", "Max Profit")
 
-                st.markdown("")
+                    st.markdown("")
 
-                # ===== Charts Row =====
-                chart_col1, chart_col2 = st.columns(2)
+                    # Info box
+                    if allocation_mode == "Profit-Optimized":
+                        st.info(f"Optimized for maximum returns with {max_weight_pct}% max weight per stock (medium risk). "
+                               f"Portfolio focuses on {show_top_n} high-confidence stocks.")
 
-                with chart_col1:
-                    # Pie chart — allocation by weight
-                    top_display = df.head(15)
-                    fig_pie = px.pie(
-                        top_display, values="Weight (%)", names="Stock",
-                        title="Portfolio Allocation",
-                        color_discrete_sequence=px.colors.sequential.Plasma_r,
-                        hole=0.4,
-                    )
-                    fig_pie.update_layout(
-                        template="plotly_dark",
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        height=380,
-                        margin=dict(t=50, b=20, l=20, r=20),
-                        title_font=dict(size=14, color="#a0aec0"),
-                        font=dict(color="#ccc"),
-                    )
-                    st.plotly_chart(fig_pie, use_container_width=True)
+                    # ===== Charts Row =====
+                    chart_col1, chart_col2 = st.columns(2)
 
-                with chart_col2:
-                    # Bar chart — expected return per stock
-                    top_bar = df.head(15).copy()
-                    colors = ["#00b09b" if r >= 0 else "#fc4a1a" for r in top_bar["Expected Return (%)"]]
-                    fig_bar = go.Figure(go.Bar(
-                        x=top_bar["Stock"], y=top_bar["Expected Return (%)"],
-                        marker_color=colors,
-                        text=[f"{r:.1f}%" for r in top_bar["Expected Return (%)"]],
-                        textposition="outside",
-                    ))
-                    fig_bar.update_layout(
-                        title=dict(text="Expected Return by Stock", font=dict(size=14, color="#a0aec0")),
-                        template="plotly_dark",
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(15,15,35,0.8)",
-                        height=380,
-                        margin=dict(t=50, b=40, l=40, r=20),
-                        yaxis_title="Return (%)",
-                        font=dict(color="#ccc"),
-                    )
-                    st.plotly_chart(fig_bar, use_container_width=True)
+                    with chart_col1:
+                        # Pie chart — allocation by weight
+                        top_display = df.head(15)
+                        fig_pie = px.pie(
+                            top_display, values="Weight (%)", names="Stock",
+                            title="Portfolio Allocation",
+                            color_discrete_sequence=px.colors.sequential.Plasma_r,
+                            hole=0.4,
+                        )
+                        fig_pie.update_layout(
+                            template="plotly_dark",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            height=380,
+                            margin=dict(t=50, b=20, l=20, r=20),
+                            title_font=dict(size=14, color="#a0aec0"),
+                            font=dict(color="#ccc"),
+                        )
+                        st.plotly_chart(fig_pie, use_container_width=True)
 
-                st.markdown("---")
+                    with chart_col2:
+                        # Bar chart — expected return per stock
+                        top_bar = df.head(15).copy()
+                        colors = ["#00b09b" if r >= 0 else "#fc4a1a" for r in top_bar["Expected Return (%)"]]
+                        fig_bar = go.Figure(go.Bar(
+                            x=top_bar["Stock"], y=top_bar["Expected Return (%)"],
+                            marker_color=colors,
+                            text=[f"{r:.1f}%" for r in top_bar["Expected Return (%)"]],
+                            textposition="outside",
+                        ))
+                        fig_bar.update_layout(
+                            title=dict(text="Expected Return by Stock", font=dict(size=14, color="#a0aec0")),
+                            template="plotly_dark",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            plot_bgcolor="rgba(15,15,35,0.8)",
+                            height=380,
+                            margin=dict(t=50, b=40, l=40, r=20),
+                            yaxis_title="Return (%)",
+                            font=dict(color="#ccc"),
+                        )
+                        st.plotly_chart(fig_bar, use_container_width=True)
 
-                # ===== Data Table =====
-                st.markdown("#### 📋 Full Allocation Table")
+                    st.markdown("---")
 
-                # Color code the trend column
-                def style_trend(val):
-                    if val and "bull" in str(val).lower():
-                        return "color: #00b09b; font-weight: bold"
-                    elif val and "bear" in str(val).lower():
-                        return "color: #fc4a1a; font-weight: bold"
-                    return "color: #a0aec0"
+                    # ===== Data Table =====
+                    st.markdown("#### 📋 Full Allocation Table")
 
-                styled_df = df.style.applymap(style_trend, subset=["Trend"])
-                st.dataframe(styled_df, use_container_width=True, height=400)
+                    # Color code the trend column
+                    def style_trend(val):
+                        if val and "bull" in str(val).lower():
+                            return "color: #00b09b; font-weight: bold"
+                        elif val and "bear" in str(val).lower():
+                            return "color: #fc4a1a; font-weight: bold"
+                        return "color: #a0aec0"
 
-                # Warning for cap adjustment
-                n_total = len(get_nse_stock_list())
-                if max_weight_pct and max_weight_pct > 0 and max_weight_pct < float(100 / max(1, n_total)):
-                    st.warning(f"Max cap ({max_weight_pct}%) was auto-adjusted to {round(100/n_total, 2)}%.")
-            else:
-                st.warning("No portfolio recommendations available.")
-        except Exception as e:
-            st.error(f"Error generating portfolio: {e}")
+                    # Clean NaN values before styling
+                    df_clean = clean_dataframe_nans(df)
+                    styled_df = df_clean.style.applymap(style_trend, subset=["Trend"])
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+
+                    # Warning for cap adjustment
+                    n_total = len(get_nse_stock_list())
+                    if max_weight_pct and max_weight_pct > 0 and max_weight_pct < float(100 / max(1, n_total)):
+                        st.warning(f"Max cap ({max_weight_pct}%) was auto-adjusted to {round(100/n_total, 2)}%.")
+                else:
+                    st.warning("No portfolio recommendations available.")
+            except Exception as e:
+                st.error(f"Error generating portfolio: {e}")
 
 
 # =====================================================================
-# 🔍 PAGE 3: STOCK COMPARISON
+# � PAGE 3: ADVANCED ANALYTICS
+# =====================================================================
+elif page == "📈 Advanced Analytics":
+    render_advanced_analytics(stock_list)
+
+
+# =====================================================================
+# 🔍 PAGE 4: STOCK COMPARISON
 # =====================================================================
 elif page == "🔍 Stock Comparison":
     st.markdown('<p class="main-title">Stock Comparison</p>', unsafe_allow_html=True)
@@ -1302,13 +1379,23 @@ elif page == "📊 Tracking Dashboard":
                 
                 col_a, col_b, col_c, col_d = st.columns(4)
                 with col_a:
-                    st.metric("Trend", pred['trend'])
+                    trend_display = safe_format_value(pred.get('trend'), default="[No Data]")
+                    st.metric("Trend", trend_display)
                 with col_b:
-                    st.metric("Confidence", f"{float(pred['confidence'])*100:.1f}%")
+                    confidence_val = pred.get('confidence', 0)
+                    confidence_display = safe_format_value(confidence_val, "{:.1f}%") if confidence_val or confidence_val == 0 else "[No Data]"
+                    # Convert to percentage if it's in decimal form
+                    if confidence_val and isinstance(confidence_val, (int, float)) and confidence_val <= 1:
+                        confidence_display = f"{float(confidence_val)*100:.1f}%"
+                    st.metric("Confidence", confidence_display)
                 with col_c:
-                    st.metric("Current Price", f"₹{pred['current_price']:.2f}")
+                    current_price = pred.get('current_price', 0)
+                    price_display = safe_format_value(current_price, "₹{:.2f}") if current_price and current_price > 0 else "[No Price Data]"
+                    st.metric("Current Price", price_display)
                 with col_d:
-                    st.metric("Predicted Price", f"₹{pred.get('predicted_price', 0):.2f}" if pred.get('predicted_price') else "N/A")
+                    pred_price = pred.get('predicted_price')
+                    pred_display = safe_format_value(pred_price, "₹{:.2f}") if pred_price and not (isinstance(pred_price, float) and np.isnan(pred_price)) else "[No Prediction]"
+                    st.metric("Predicted Price", pred_display)
                 
                 # Log to sheets button
                 if st.button("💾 Save to Sheets", use_container_width=True, key="log_search"):
@@ -1388,8 +1475,9 @@ elif page == "📊 Tracking Dashboard":
             portfolio_df = tracker.get_portfolio()
             
             if not portfolio_df.empty:
-                # Display as styled table
-                st.dataframe(portfolio_df, use_container_width=True, height=400)
+                # Clean NaN values before displaying
+                portfolio_df_clean = clean_dataframe_nans(portfolio_df)
+                st.dataframe(portfolio_df_clean, use_container_width=True, height=400)
                 
                 # Summary
                 col_s1, col_s2, col_s3 = st.columns(3)

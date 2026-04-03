@@ -402,10 +402,13 @@ def predict_long_term(data: pd.DataFrame, sentiment_score: float = 0.0):
     return _quick_predict(data, sentiment_score)
 
 
-def _quick_predict(data: pd.DataFrame, sentiment_score: float = 0.0):
+    # Import ensemble
+    from modules.ensemble_model import EnsemblePredictor
+    from modules.feature_engineering import build_features, get_feature_columns
+    
     """
     Internal: trains best available model and returns latest prediction.
-    For the app's real-time use. Uses Random Forest as default (fastest).
+    For the app's real-time use. Uses ENSEMBLE for best accuracy.
     """
     if data is None or data.empty:
         return "N/A", 0.0
@@ -422,21 +425,23 @@ def _quick_predict(data: pd.DataFrame, sentiment_score: float = 0.0):
         if X_train is None or len(X_train) < 10:
             return _simple_fallback(data)
 
-        # Use Random Forest (fast and reliable)
-        clf, reg = train_random_forest(X_train, y_cls_train, y_reg_train)
+        # Use ENSEMBLE (RF + XGBoost + LSTM)
+        print("  [INFO] Training ensemble model (RF + XGBoost + LSTM)...")
+        ensemble = EnsemblePredictor()
+        ensemble.train(X_train, y_cls_train, y_reg_train)
 
         # Predict on the last row of test set (most recent)
         last_row = X_test[-1:] if len(X_test) > 0 else X_train[-1:]
-        pred_cls = clf.predict(last_row)[0]
-        pred_proba = clf.predict_proba(last_row)
-        confidence = float(np.max(pred_proba))
-
-        trend = "Bullish" if pred_cls == 1 else "Bearish"
+        trend, confidence, predicted_return = ensemble.predict(last_row)
+        
         return trend, confidence
 
     except Exception as e:
         print(f"Quick predict error: {e}")
         return _simple_fallback(data)
+
+
+def _quick_predict_old(data: pd.DataFrame, sentiment_score: float = 0.0):
 
 
 def _simple_fallback(data: pd.DataFrame):

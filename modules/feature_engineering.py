@@ -78,6 +78,68 @@ def stochastic_oscillator(high: pd.Series, low: pd.Series, close: pd.Series, k_p
     return k, d
 
 
+def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+    """Average Directional Index - measures trend strength."""
+    plus_dm = high.diff().where(high.diff() > low.diff().abs(), 0)
+    minus_dm = -low.diff().where(low.diff() > high.diff(), 0)
+    plus_dm = plus_dm.where(plus_dm > 0, 0)
+    minus_dm = minus_dm.where(minus_dm > 0, 0)
+    
+    tr = (high - low).abs()
+    tr = pd.concat([tr, (high - close.shift(1)).abs(), (low - close.shift(1)).abs()], axis=1).max(axis=1)
+    atr_val = tr.rolling(period, min_periods=1).mean()
+    
+    plus_di = 100 * plus_dm.rolling(period, min_periods=1).mean() / (atr_val + 1e-10)
+    minus_di = 100 * minus_dm.rolling(period, min_periods=1).mean() / (atr_val + 1e-10)
+    di_diff = (plus_di - minus_di).abs()
+    di_sum = plus_di + minus_di
+    
+    dx = 100 * di_diff / (di_sum + 1e-10)
+    return dx.rolling(period, min_periods=1).mean()
+
+
+def roc(series: pd.Series, period: int = 12) -> pd.Series:
+    """Rate of Change - momentum indicator."""
+    return 100 * (series - series.shift(period)) / (series.shift(period) + 1e-10)
+
+
+def cci(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 20) -> pd.Series:
+    """Commodity Channel Index."""
+    tp = (high + low + close) / 3
+    sma_tp = tp.rolling(period, min_periods=1).mean()
+    mad = (tp - sma_tp).abs().rolling(period, min_periods=1).mean()
+    return (tp - sma_tp) / (0.015 * mad + 1e-10)
+
+
+def williams_r(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+    """Williams %R - overbought/oversold indicator."""
+    highest = high.rolling(period, min_periods=1).max()
+    lowest = low.rolling(period, min_periods=1).min()
+    return -100 * (highest - close) / (highest - lowest + 1e-10)
+
+
+def money_flow_index(high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.Series, period: int = 14) -> pd.Series:
+    """Money Flow Index - volume-weighted RSI."""
+    tp = (high + low + close) / 3
+    rmf = tp * volume  # raw money flow
+    
+    positive_mf = rmf.where(tp > tp.shift(1), 0)
+    negative_mf = rmf.where(tp <= tp.shift(1), 0)
+    
+    pmf = positive_mf.rolling(period, min_periods=1).sum()
+    nmf = negative_mf.rolling(period, min_periods=1).sum()
+    
+    mfi = 100 - (100 / (1 + pmf / (nmf + 1e-10)))
+    return mfi
+
+
+def rvi(series: pd.Series, period: int = 14) -> pd.Series:
+    """Relative Vigor Index - momentum based on close relative to open."""
+    numerator = (series - series.shift(4)).rolling(period, min_periods=1).sum()
+    denominator = (series.shift(0) - series.shift(4)).abs().rolling(period, min_periods=1).sum()
+    return 100 * numerator / (denominator + 1e-10)
+
+
 # =========================================
 # Feature Builder
 # =========================================
@@ -178,6 +240,34 @@ def build_features(df: pd.DataFrame, sentiment_score: float = 0.0) -> pd.DataFra
     feat["volatility_5"] = close.rolling(5, min_periods=1).std() / (close + 1e-10)
     feat["volatility_20"] = close.rolling(20, min_periods=1).std() / (close + 1e-10)
 
+    # --- Advanced Indicators (NEW) ---
+    feat["adx_14"] = adx(high, low, close, 14)
+    feat["roc_12"] = roc(close, 12)
+    feat["roc_5"] = roc(close, 5)
+    feat["cci_20"] = cci(high, low, close, 20)
+    feat["williams_r"] = williams_r(high, low, close, 14)
+    feat["mfi_14"] = money_flow_index(high, low, close, volume, 14)
+    feat["rvi_14"] = rvi(close, 14)
+    
+    # --- Volume Analysis (ENHANCED) ---
+    feat["volume_rate_of_change"] = roc(volume, 5)
+    feat["price_volume_trend"] = roc(close, 1) * volume
+    
+    # --- Multi-timeframe Analysis ---
+    feat["sma_50"] = sma(close, 50)
+    feat["sma_200"] = sma(close, 200)
+    feat["ema_20"] = ema(close, 20)
+    feat["close_to_sma50"] = close / feat["sma_50"] - 1
+    feat["close_to_sma200"] = close / feat["sma_200"] - 1
+    feat["sma_50_to_sma200"] = feat["sma_50"] / feat["sma_200"] - 1
+    
+    # --- Volatility Features (ENHANCED) ---
+    feat["atr_ratio_14_50"] = atr(high, low, close, 14) / atr(high, low, close, 50)
+    feat["volatility_10"] = close.rolling(10, min_periods=1).std() / (close + 1e-10)
+    
+    # --- Momentum Features ---
+    feat["rsi_divergence"] = rsi(close, 14) - rsi(volume, 14)
+    
     # --- Sentiment (constant for the batch, varies per prediction call) ---
     feat["sentiment_score"] = sentiment_score
 
@@ -194,18 +284,41 @@ def build_features(df: pd.DataFrame, sentiment_score: float = 0.0) -> pd.DataFra
 def get_feature_columns():
     """Return the list of feature column names (excludes targets and raw OHLCV)."""
     return [
+        # Basic returns and lags
         "return_1d", "return_3d", "return_5d",
         "close_lag_1", "close_lag_2", "close_lag_3", "close_lag_5",
         "return_lag_1", "return_lag_2", "return_lag_3", "return_lag_5",
-        "sma_5", "sma_10", "sma_20", "ema_12", "ema_26",
-        "close_to_sma5", "close_to_sma20", "sma5_to_sma20",
-        "rsi_14", "rsi_7",
+        
+        # Moving averages (basic + multi-timeframe)
+        "sma_5", "sma_10", "sma_20", "sma_50", "sma_200",
+        "ema_12", "ema_20", "ema_26",
+        "close_to_sma5", "close_to_sma20", "close_to_sma50", "close_to_sma200",
+        "sma5_to_sma20", "sma_50_to_sma200",
+        
+        # Momentum indicators
+        "rsi_14", "rsi_7", "rsi_divergence",
         "macd", "macd_signal", "macd_hist",
+        "roc_12", "roc_5",
+        
+        # Volatility
         "bb_upper", "bb_lower", "bb_width", "bb_position",
-        "atr_14", "atr_pct",
+        "atr_14", "atr_pct", "atr_ratio_14_50",
+        "volatility_5", "volatility_10", "volatility_20",
+        
+        # Volume indicators
         "volume_sma_10", "volume_ratio", "obv",
+        "volume_rate_of_change", "price_volume_trend",
+        
+        # Oscillators
         "stoch_k", "stoch_d",
+        "cci_20", "williams_r", "mfi_14", "rvi_14",
+        
+        # Trend indicators
+        "adx_14",
+        
+        # Candlestick patterns
         "body_size", "upper_shadow", "lower_shadow",
-        "volatility_5", "volatility_20",
+        
+        # Sentiment
         "sentiment_score",
     ]

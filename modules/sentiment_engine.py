@@ -102,7 +102,9 @@ def analyze_hybrid_sentiment(text: str) -> dict:
         # If fin or gen returns a scalar, fallback to combining as proportions
         hybrid = {"positive": 0.0, "neutral": 1.0, "negative": 0.0}
     return hybrid
-: str, from_days: int = 7, max_articles: int = 20) -> list:
+
+
+def fetch_news_articles(stock_ticker: str, from_days: int = 7, max_articles: int = 20) -> list:
     """
     Fetch recent news articles for a stock using NewsAPI.
     

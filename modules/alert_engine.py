@@ -14,9 +14,16 @@ from dotenv import load_dotenv
 import pandas as pd
 
 # Try to use nest_asyncio to handle already-running loops
+# BUT: Don't apply in Streamlit - it manages its own async
 try:
-    import nest_asyncio
-    nest_asyncio.apply()
+    import sys
+    if 'streamlit' not in sys.modules:
+        import nest_asyncio
+        try:
+            nest_asyncio.apply()
+        except RuntimeError:
+            # Already applied or incompatible
+            pass
 except ImportError:
     pass
 
