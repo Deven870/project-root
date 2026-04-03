@@ -16,6 +16,7 @@ try:
     from modules.trading_dashboard import render_trading_dashboard
     from modules.config_validator import validate_startup
     from modules.analytics_page import render_advanced_analytics
+    from dashboard_70_system import render_70_accuracy_dashboard
     is_valid, config = validate_startup()
 except ImportError:
     # Optional modules not available
@@ -224,7 +225,7 @@ with st.sidebar:
     st.markdown("## 🚀 **Digitrader**")
     st.caption("Smart Trading Assistant")
     st.markdown("---")
-    page = st.radio("Navigate", ["📊 Trading Dashboard", "💼 Portfolio Suggestions", "� Advanced Analytics", "�🔍 Stock Comparison", "📄 Research Results", "📊 Tracking Dashboard", "💰 Risk & P&L", "📋 Browse All Stocks"], label_visibility="collapsed")
+    page = st.radio("Navigate", ["🎯 70% Accuracy System", "📊 Trading Dashboard", "💼 Portfolio Suggestions", "📈 Advanced Analytics", "🔍 Stock Comparison", "📄 Research Results", "📊 Tracking Dashboard", "💰 Risk & P&L", "📋 Browse All Stocks"], label_visibility="collapsed")
     st.markdown("---")
     
     # --- Automation Status Panel
@@ -1761,3 +1762,14 @@ st.markdown("""
         <span style="color:#666; font-size:0.8rem;">Smart Trading Assistant · For educational purposes only · Not financial advice</span>
     </div>
 """, unsafe_allow_html=True)
+
+# =====================================================================
+# 🎯 PAGE 1: 70% ACCURACY SYSTEM (NEW)
+# =====================================================================
+if page == "🎯 70% Accuracy System":
+    try:
+        render_70_accuracy_dashboard()
+    except Exception as e:
+        st.error(f"Error loading 70% Accuracy System: {e}")
+        st.info("Make sure dashboard_70_system.py is in the project root.")
+

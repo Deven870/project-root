@@ -6,7 +6,7 @@ Shows how to execute trades and log them
 import yfinance as yf
 from datetime import datetime
 from modules.paper_trading_framework import PaperTradingAccount, PaperTradeExecutor
-from modules.prediction_70_integration import predict_swing
+from modules.prediction_70_integration import predict_composite
 from modules.feature_engineering import build_features
 import json
 from pathlib import Path
@@ -19,13 +19,13 @@ executor = PaperTradeExecutor(account)
 ticker = "RELIANCE.NS"
 
 # Fetch data
-df = yf.download(ticker, period="100d")
+df = yf.download(ticker, period="100d", progress=False)
 
 # Build features
 features = build_features(df)
 
-# Get prediction from 70% system
-trend, confidence, signal = predict_swing(features, df['Close'].values, ticker)
+# Get prediction from 70% system (composite for 70% accuracy)
+trend, confidence, signal, regime = predict_composite(features, df['Close'].values, ticker)
 
 print(f"\nExample Trade Execution:")
 print(f"Ticker: {ticker}")
