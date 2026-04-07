@@ -278,7 +278,9 @@ if page == "📊 Dashboard":
     
     with col1:
         st.subheader("🟢 Top Buy Signals")
-        buy_stocks = ["RELIANCE.NS", "TCS.NS", "INFY.NS"]
+        # Get all NSE stocks (not just 3)
+        all_stocks = get_all_nse_stocks()
+        buy_stocks = list(all_stocks.keys())[:50]  # Analyze top 50 most traded
         for stock in buy_stocks:
             try:
                 with st.spinner(f"Analyzing {stock}..."):
@@ -340,7 +342,7 @@ elif page == "🔬 Precision Analyzer":
     elif selection_mode == "By Sector":
         sector = st.selectbox("Choose sector", list(SECTOR_STOCKS.keys()))
         if sector:
-            selected_stocks = list(SECTOR_STOCKS[sector])[:10]
+            selected_stocks = list(SECTOR_STOCKS[sector])  # Show ALL stocks in sector
             st.info(f"📊 Analyzing {len(selected_stocks)} stocks in {sector} sector")
     
     elif selection_mode == "Search":
@@ -349,7 +351,7 @@ elif page == "🔬 Precision Analyzer":
             all_stocks = get_all_nse_stocks()
             matching = [s for s in all_stocks.keys() if search_query.upper() in s]
             if matching:
-                selected_stocks = matching[:10]
+                selected_stocks = matching  # Show ALL matching results
                 st.info(f"Found {len(selected_stocks)} matches")
     
     # Analyze button
