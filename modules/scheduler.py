@@ -16,6 +16,7 @@ from modules.sheets_live import (
     update_live_prices,
     update_pnl_dashboard,
 )
+from modules.auto_trader import run_daily_paper_trading, run_daily_validation_check
 from modules.top10_scanner import get_top10
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,8 @@ _job_last_run = {
     "check_stoploss_breaches": None,
     "refresh_open_trade_prices": None,
     "eod_report": None,
+    "daily_paper_trading": None,
+    "daily_validation_check": None,
 }
 _scheduler_instance = None
 
@@ -290,6 +293,20 @@ def start_scheduler():
         run_eod_report,
         CronTrigger(day_of_week="mon-fri", hour=15, minute=45, timezone=IST),
         id="eod_report",
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        run_daily_paper_trading,
+        CronTrigger(day_of_week="mon-fri", hour=9, minute=15, timezone=IST),
+        id="daily_paper_trading",
+        replace_existing=True,
+    )
+
+    scheduler.add_job(
+        run_daily_validation_check,
+        CronTrigger(day_of_week="mon-fri", hour=15, minute=35, timezone=IST),
+        id="daily_validation_check",
         replace_existing=True,
     )
 

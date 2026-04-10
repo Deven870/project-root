@@ -38,6 +38,7 @@ try:
     from modules.trading_dashboard import render_trading_dashboard
     from modules.config_validator import validate_startup
     from modules.analytics_page import render_advanced_analytics
+    from modules.validation_dashboard import render_validation_dashboard
     is_valid, config = validate_startup()
 except ImportError:
     pass
@@ -208,6 +209,7 @@ with st.sidebar:
             "⏰ Market Tracker",
             "💰 Risk Management",
             "📋 Stock Browser",
+            "📊 30-Day Validation",
             "⚙️ Settings & API"
         ],
         label_visibility="collapsed"
@@ -663,7 +665,18 @@ elif page == "📋 Stock Browser":
     st.info(f"📊 Total: {len(stocks_df)} stocks in {sector}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ⚙️ PAGE 9: SETTINGS
+# 📊 PAGE 9: 30-DAY VALIDATION DASHBOARD
+# ═══════════════════════════════════════════════════════════════════════════════
+
+elif page == "📊 30-Day Validation":
+    try:
+        render_validation_dashboard()
+    except Exception as e:
+        st.error(f"❌ Dashboard error: {e}")
+        st.info("Ensure paper_trading_validator.py is initialized and trades have been logged.")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ⚙️ PAGE 10: SETTINGS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 elif page == "⚙️ Settings & API":
