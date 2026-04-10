@@ -1,0 +1,62 @@
+name: Weekly Model Retraining
+
+on:
+  schedule:
+    - cron: "0 17 * * 0"   # Sunday 11 PM IST = 17:30 UTC (approximately)
+  workflow_dispatch:        # Manual trigger button
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run model retraining
+        env:
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: |
+          python run_experiments.py --retrain --symbols all
+      
+      - name: Upload trained models
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: trained-models-${{ github.run_id }}
+          path: models/
+          retention-days: 7
+      
+      - name: Upload accuracy logs
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: accuracy-logs-${{ github.run_id }}
+          path: results/accuracy_log.csv
+          retention-days: 30
+      
+      - name: Notify completion
+        if: always()
+        run: |
+          echo "Model retraining job completed"
+          echo "Artifacts available for download"

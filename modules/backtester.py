@@ -100,10 +100,13 @@ def get_feature_importance(model, feature_names):
 # Simulated Trading P&L (Equity Curve)
 # =========================================
 
-def simulate_trading(y_true_returns, y_pred_direction, initial_capital=100000):
+def simulate_trading(y_true_returns, y_pred_direction, initial_capital=100000, 
+                     stop_loss_pct=0.02, target_profit_pct=0.05):
     """
-    Simulate trading based on model predictions.
+    Simulate trading based on model predictions with stop-loss and target exits.
     Buy when model predicts Bullish (1), stay cash when Bearish (0).
+    
+    FIX 2: Enforce stop-loss and target exits for realism.
 
     Parameters
     ----------
@@ -113,10 +116,14 @@ def simulate_trading(y_true_returns, y_pred_direction, initial_capital=100000):
         Predicted direction (0=Bearish, 1=Bullish)
     initial_capital : float
         Starting capital
+    stop_loss_pct : float
+        Stop-loss percentage (e.g., 0.02 = 2%)
+    target_profit_pct : float
+        Target profit percentage (e.g., 0.05 = 5%)
 
     Returns
     -------
-    dict with equity_curve, total_return, buy_hold_return, sharpe_ratio
+    dict with equity_curve, total_return, buy_hold_return, sharpe_ratio, exit_reasons
     """
     y_true_returns = np.array(y_true_returns).astype(float)
     y_pred_direction = np.array(y_pred_direction).astype(int)
@@ -124,8 +131,56 @@ def simulate_trading(y_true_returns, y_pred_direction, initial_capital=100000):
     y_true_returns = y_true_returns[:min_len]
     y_pred_direction = y_pred_direction[:min_len]
 
-    # Model strategy: invest when bullish, hold cash when bearish
-    strategy_returns = y_true_returns * y_pred_direction
+    # Model strategy with stop-loss and target exits
+    strategy_returns = []
+    exit_reasons = []
+    position_active = False
+    entry_idx = None
+    entry_return_level = 0
+    
+    for i in range(min_len):
+        if y_pred_direction[i] == 1 and not position_active:  # BUY signal
+            position_active = True
+            entry_idx = i
+            entry_return_level = 0
+            strategy_returns.append(0)
+            exit_reasons.append("entry")
+        elif position_active:
+            # Check for stop-loss or target hit
+            cumulative_return = np.sum(y_true_returns[entry_idx:i+1])
+            
+            if cumulative_return <= -stop_loss_pct:
+                # Stop-loss triggered
+                strategy_returns.append(-stop_loss_pct)
+                exit_reasons.append("stop_loss")
+                position_active = False
+            elif cumulative_return >= target_profit_pct:
+                # Target hit
+                strategy_returns.append(target_profit_pct)
+                exit_reasons.append("target_hit")
+                position_active = False
+            else:
+                # Still in position
+                strategy_returns.append(y_true_returns[i] if position_active else 0)
+                exit_reasons.append("open")
+        else:
+            # No position
+            strategy_returns.append(0)
+            exit_reasons.append("cash")
+    
+    # Close any remaining open positions
+    if position_active and entry_idx is not None:
+        cumulative_return = np.sum(y_true_returns[entry_idx:])
+        if cumulative_return <= -stop_loss_pct:
+            strategy_returns[-1] = -stop_loss_pct
+            exit_reasons[-1] = "stop_loss"
+        elif cumulative_return >= target_profit_pct:
+            strategy_returns[-1] = target_profit_pct
+            exit_reasons[-1] = "target_hit"
+        else:
+            exit_reasons[-1] = "eop_close"
+    
+    strategy_returns = np.array(strategy_returns)
 
     # Equity curves
     strategy_equity = initial_capital * np.cumprod(1 + strategy_returns)
@@ -145,6 +200,11 @@ def simulate_trading(y_true_returns, y_pred_direction, initial_capital=100000):
     peak = np.maximum.accumulate(strategy_equity)
     drawdown = (strategy_equity - peak) / peak
     max_drawdown = np.min(drawdown) * 100 if len(drawdown) > 0 else 0
+    
+    # Count exit reasons
+    exit_reason_counts = {}
+    for reason in exit_reasons:
+        exit_reason_counts[reason] = exit_reason_counts.get(reason, 0) + 1
 
     return {
         "strategy_equity": strategy_equity.tolist(),
@@ -155,6 +215,8 @@ def simulate_trading(y_true_returns, y_pred_direction, initial_capital=100000):
         "max_drawdown_pct": round(max_drawdown, 2),
         "n_trades": int(np.sum(y_pred_direction)),
         "n_periods": int(min_len),
+        "exit_reasons": exit_reason_counts,
+        "exit_reason_details": exit_reasons,
     }
 
 

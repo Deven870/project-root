@@ -13,10 +13,22 @@ except Exception:
     _TEXTBLOB_AVAILABLE = False
 import requests
 from datetime import datetime, timedelta
+import hashlib
+import json
 
-# ------------------------------
+# =========================================
+# FIX 9: FinBERT Caching Setup
+# =========================================
+CACHE_DIR = ".sentiment_cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+def _cache_key(text):
+    """Generate MD5 hash key for cache."""
+    return hashlib.md5(text.encode()).hexdigest()
+
+# =========================================
 # FinBERT for financial sentiment
-# ------------------------------
+# =========================================
 finbert_model_name = "yiyanghkust/finbert-tone"
 tokenizer_finbert = None
 model_finbert = None
@@ -49,6 +61,42 @@ def analyze_finbert(text: str) -> dict:
     except Exception as e:
         print(f"FinBERT analysis error: {e}")
         return {"negative": 0.0, "neutral": 1.0, "positive": 0.0}
+
+
+def analyze_finbert_cached(text: str) -> dict:
+    """
+    Analyze sentiment using FinBERT with MD5 hash-based disk cache.
+    Cache TTL = 6 hours (handled by cache_cleanup job in scheduler).
+    
+    FIX 9: Caching - fixes the 3-8s per headline speed problem.
+    
+    Args:
+        text: Input text to analyze
+        
+    Returns:
+        Dictionary with sentiment scores: {negative, neutral, positive}
+    """
+    key = _cache_key(text)
+    cache_path = os.path.join(CACHE_DIR, f"{key}.json")
+    
+    # Check cache
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, 'r') as f:
+                cached = json.load(f)
+                return cached
+        except Exception:
+            pass
+    
+    # Compute and cache
+    result = analyze_finbert(text)
+    try:
+        with open(cache_path, 'w') as f:
+            json.dump(result, f)
+    except Exception as e:
+        print(f"Warning: Could not write cache: {e}")
+    
+    return result
 
 def analyze_general_sentiment(text: str) -> dict:
     """
@@ -87,6 +135,7 @@ def analyze_general_sentiment(text: str) -> dict:
 def analyze_hybrid_sentiment(text: str) -> dict:
     """
     Analyze sentiment using hybrid approach: 70% FinBERT + 30% general sentiment.
+    Uses cached FinBERT for speed (FIX 9).
     
     Args:
         text: Input text to analyze
@@ -94,7 +143,7 @@ def analyze_hybrid_sentiment(text: str) -> dict:
     Returns:
         Dictionary with hybrid sentiment scores: {negative, neutral, positive}
     """
-    fin = analyze_finbert(text)
+    fin = analyze_finbert_cached(text)  # Use cached version for speed
     gen = analyze_general_sentiment(text)
     try:
         hybrid = {k: round(0.7*fin.get(k, 0) + 0.3*gen.get(k, 0), 4) for k in labels}

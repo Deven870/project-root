@@ -649,6 +649,64 @@ def get_investment_advice(ticker, horizon="intraday"):
 
 
 # =========================================
+# FIX 3: Kelly Criterion Position Sizing
+# =========================================
+def kelly_position_size(capital, win_rate, avg_win_pct, avg_loss_pct, max_risk_pct=0.02):
+    """
+    Returns rupee amount to invest in a single trade using Kelly Criterion.
+    Caps at max_risk_pct of capital as a safety floor.
+    
+    Parameters
+    ----------
+    capital : float
+        Total account capital in rupees
+    win_rate : float
+        Historical win rate (0-1, e.g., 0.62 for 62%)
+    avg_win_pct : float
+        Average winning trade return as percentage (e.g., 0.05 for 5%)
+    avg_loss_pct : float
+        Average losing trade loss as percentage (e.g., 0.03 for 3%)
+    max_risk_pct : float
+        Maximum risk per trade, safety cap (e.g., 0.02 for 2%)
+        
+    Returns
+    -------
+    float
+        Recommended investment amount in rupees
+    """
+    try:
+        # Handle edge cases
+        if avg_loss_pct == 0:
+            return round(capital * max_risk_pct, 2)
+        
+        if win_rate <= 0 or win_rate >= 1:
+            return round(capital * max_risk_pct, 2)
+        
+        # Kelly Formula: f* = (b*p - q) / b
+        # where: b = win/loss ratio, p = win_rate, q = 1 - win_rate
+        b = abs(avg_win_pct) / abs(avg_loss_pct)
+        q = 1 - win_rate
+        
+        kelly_f = (win_rate * b - q) / b if b > 0 else 0
+        
+        # Safety caps:
+        # 1. Kelly should never be > 25% (too aggressive for live trading)
+        kelly_f = max(0, min(kelly_f, 0.25))
+        
+        # 2. Safer f: reduce kelly by 50% for practical use
+        safe_f = kelly_f * 0.5
+        
+        # 3. Absolute floor: never > max_risk_pct (default 2%)
+        final_f = min(safe_f, max_risk_pct)
+        
+        return round(capital * final_f, 2)
+    
+    except Exception as e:
+        print(f"Kelly sizing error: {e}")
+        return round(capital * max_risk_pct, 2)
+
+
+# =========================================
 # 📉 PRICE DATA FETCHER (YFinance)
 # =========================================
 def fetch_price_data(ticker, period='1mo', interval='1d'):
