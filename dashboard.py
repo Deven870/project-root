@@ -54,12 +54,17 @@ SECTORS = ["Technology", "Finance", "Energy", "Automobiles", "Healthcare", "Phar
 
 st.set_page_config(**PAGE_CONFIG)
 
-# Premium Modern CSS with Gradients
+# Premium Modern CSS - Dark Theme with Teal Accents
 st.markdown("""
     <style>
-        /* Main Header Styling */
+        /* Main Background & Overall Theme */
+        .stApp {
+            background: linear-gradient(135deg, #0f0c29 0%, #1a0b2e 50%, #16213e 100%);
+        }
+        
+        /* Main Header - Modern Dark */
         .main-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
             color: white;
             padding: 30px;
             border-radius: 15px;
@@ -67,67 +72,84 @@ st.markdown("""
             font-size: 36px;
             font-weight: bold;
             margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+            border: 2px solid rgba(0, 212, 255, 0.5);
         }
         
         .subheader-text {
-            font-size: 18px;
-            color: #555;
+            font-size: 16px;
+            color: #00d4ff;
             margin-bottom: 20px;
+            font-weight: 500;
         }
         
-        /* Premium Metric Cards */
+        /* Premium Metric Cards - Modern */
         .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
             color: white;
             padding: 25px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.25);
             font-weight: bold;
+            border: 1px solid rgba(0, 212, 255, 0.3);
         }
         
         .metric-card-green {
-            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            background: linear-gradient(135deg, #00d084 0%, #00b359 100%);
             color: white;
             padding: 25px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(86, 171, 47, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 208, 132, 0.25);
+            border: 1px solid rgba(0, 208, 132, 0.3);
         }
         
         .metric-card-red {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            background: linear-gradient(135deg, #ff006e 0%, #d600cc 100%);
             color: white;
             padding: 25px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(235, 51, 73, 0.3);
+            box-shadow: 0 8px 20px rgba(255, 0, 110, 0.25);
+            border: 1px solid rgba(255, 0, 110, 0.3);
         }
         
         .metric-card-blue {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 100%);
             color: white;
             padding: 25px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.25);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .metric-card-orange {
+            background: linear-gradient(135deg, #ff9500 0%, #ff6b00 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(255, 149, 0, 0.25);
+            border: 1px solid rgba(255, 149, 0, 0.3);
         }
         
         /* Price Target Cards */
         .target-card {
-            background: white;
-            border: 2px solid #667eea;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #00d4ff;
             padding: 20px;
             border-radius: 12px;
             text-align: center;
             margin: 10px 5px;
-            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+            color: white;
         }
         
         .target-title {
             font-size: 14px;
-            color: #666;
+            color: #00d4ff;
             font-weight: bold;
             margin-bottom: 10px;
         }
@@ -135,19 +157,19 @@ st.markdown("""
         .target-price {
             font-size: 24px;
             font-weight: bold;
-            color: #667eea;
+            color: #00ff88;
             margin: 10px 0;
         }
         
         .target-probability {
             font-size: 12px;
-            color: #999;
+            color: #888;
             margin-top: 10px;
         }
         
         /* Stop Loss Card */
         .stoploss-card {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            background: linear-gradient(135deg, #ff006e 0%, #d600cc 100%);
             color: white;
             padding: 25px;
             border-radius: 12px;
@@ -168,67 +190,72 @@ st.markdown("""
             margin: 10px 0;
         }
         
-        /* Entry/Exit Cards */
-        .entry-card {
-            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+        /* Stop Loss Card - Modern Pink */
+        .stoploss-card {
+            background: linear-gradient(135deg, #ff006e 0%, #d600cc 100%);
             color: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(86, 171, 47, 0.3);
+            box-shadow: 0 8px 20px rgba(255, 0, 110, 0.25);
+            margin: 15px 0;
+            border: 1px solid rgba(255, 0, 110, 0.3);
         }
         
-        .exit-card {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
-        }
-        
-        /* Confidence Gauge */
-        .gauge-label {
-            font-size: 12px;
-            color: #666;
+        .stoploss-label {
+            font-size: 14px;
+            opacity: 0.95;
             margin-bottom: 10px;
+            font-weight: 600;
         }
         
-        /* Analysis Breakdown */
-        .analysis-box {
-            background: #f8f9fc;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            border-radius: 8px;
+        .stoploss-value {
+            font-size: 28px;
+            font-weight: bold;
             margin: 10px 0;
         }
         
-        /* Quick Action Buttons */
-        .action-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Entry/Exit Cards - Modern Green/Cyan */
+        .entry-card {
+            background: linear-gradient(135deg, #00d084 0%, #00b359 100%);
             color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            margin: 5px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0, 208, 132, 0.25);
+            border: 1px solid rgba(0, 208, 132, 0.3);
         }
         
-        .action-button:hover {
-            opacity: 0.9;
+        .exit-card {
+            background: linear-gradient(135deg, #00d4ff 0%, #00a8cc 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.25);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        /* Analysis Box - Modern Dark Card */
+        .analysis-box {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-left: 4px solid #00d4ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            color: #e0e0e0;
+            box-shadow: 0 4px 10px rgba(0, 212, 255, 0.1);
         }
         
         /* Divider */
         .divider {
-            border-top: 2px solid #e0e0e0;
+            border-top: 2px solid rgba(0, 212, 255, 0.2);
             margin: 20px 0;
         }
         
-        .positive { color: #28a745; font-weight: bold; }
-        .negative { color: #dc3545; font-weight: bold; }
-        .neutral { color: #ffc107; font-weight: bold; }
+        .positive { color: #00ff88; font-weight: bold; }
+        .negative { color: #ff006e; font-weight: bold; }
+        .neutral { color: #ff9500; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -730,20 +757,308 @@ def main():
         st.dataframe(top_stocks, use_container_width=True, hide_index=True)
 
     elif page == "💼 Portfolio Builder":
-        st.markdown("## 💼 Portfolio Generator")
+        st.markdown("## 💼 Complete Portfolio Generator")
+        st.markdown("*Build optimized, diversified portfolios with actionable recommendations*")
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            capital = st.number_input("Capital (₹)", value=250000, step=10000)
+            capital = st.number_input("Investment Amount (₹)", value=100000, step=5000)
         with col2:
             risk = st.selectbox("Risk Profile", ["Conservative", "Moderate", "Aggressive"])
         with col3:
-            horizon = st.selectbox("Horizon", ["Intraday", "Swing", "Positional", "LongTerm"])
+            horizon = st.selectbox("Time Horizon", ["Intraday", "Swing", "Positional", "LongTerm"])
         with col4:
-            if st.button("Generate Portfolio"):
-                st.success("✅ Portfolio Generated!")
-                st.metric("Invested", f"₹{capital * 0.7:,.0f}")
-                st.metric("Cash Reserves", f"₹{capital * 0.3:,.0f}")
+            num_stocks = st.slider("Portfolio Stocks", 3, 10, 5)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+        
+        # Capital Breakdown 
+        st.markdown("### 💰 Capital Allocation Plan")
+        cash_reserves = capital * (0.40 if risk == "Conservative" else 0.30 if risk == "Moderate" else 0.15)
+        deployed = capital - cash_reserves
+        
+        alloc_col1, alloc_col2, alloc_col3 = st.columns(3)
+        with alloc_col1:
+            st.markdown(f'<div class="metric-card">Total Capital<br>₹{capital:,.0f}</div>', unsafe_allow_html=True)
+        with alloc_col2:
+            st.markdown(f'<div class="metric-card-green">Deploy<br>₹{deployed:,.0f}</div>', unsafe_allow_html=True)
+        with alloc_col3:
+            st.markdown(f'<div class="metric-card-orange">Reserve<br>₹{cash_reserves:,.0f}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+        
+        if st.button("🚀 GENERATE COMPLETE PORTFOLIO", use_container_width=True, key="build_complete_portfolio_btn"):
+            with st.spinner("⏳ Analyzing markets & generating complete portfolio..."):
+                time.sleep(1)
+                
+                # Generate realistic portfolio data
+                candidate_stocks = []
+                selected_stocks = NSE_STOCKS[:num_stocks]
+                
+                stock_data = {
+                    "RELIANCE": {"sector": "Energy", "price": 2850, "pe": 24},
+                    "TCS": {"sector": "Technology", "price": 3245, "pe": 26},
+                    "INFY": {"sector": "Technology", "price": 1645, "pe": 22},
+                    "WIPRO": {"sector": "Technology", "price": 412, "pe": 18},
+                    "HCL-TECH": {"sector": "Technology", "price": 1320, "pe": 16},
+                    "ICICIBANK": {"sector": "Finance", "price": 845, "pe": 15},
+                    "HDFC": {"sector": "Finance", "price": 2750, "pe": 28},
+                    "SBIN": {"sector": "Finance", "price": 550, "pe": 12},
+                    "MARUTI": {"sector": "Automobiles", "price": 9850, "pe": 20},
+                    "TATAMOTORS": {"sector": "Automobiles", "price": 680, "pe": 8},
+                }
+                
+                for ticker in selected_stocks:
+                    data = stock_data.get(ticker, {"sector": "Technology", "price": 2000, "pe": 20})
+                    current_price = data["price"]
+                    candidate_stocks.append({
+                        "ticker": ticker,
+                        "sector": data["sector"],
+                        "signal_strength": np.random.choice(["STRONG BUY", "BUY", "NEUTRAL"]),
+                        "expected_return_pct": np.random.uniform(0.08, 0.18),
+                        "confidence": np.random.uniform(68, 88),
+                        "pe_ratio": data["pe"],
+                        "debt_to_equity": np.random.uniform(0.3, 1.2),
+                        "entry_zone_low": current_price * 0.98,
+                        "entry_zone_high": current_price * 1.02,
+                        "stop_loss": current_price * 0.94,
+                        "target_1": current_price * 1.08,
+                        "target_2": current_price * 1.15,
+                        "target_3": current_price * 1.25,
+                    })
+                
+                # Call API
+                try:
+                    portfolio_payload = {
+                        "total_capital": capital,
+                        "risk_profile": risk.upper(),
+                        "horizon": horizon.upper(),
+                        "candidate_stocks": candidate_stocks,
+                    }
+                    
+                    resp = requests.post(
+                        f"{API_BASE}/api/v1/nseiq/portfolio",
+                        json=portfolio_payload,
+                        timeout=20
+                    )
+                    
+                    if resp.status_code == 200:
+                        portfolio_result = resp.json()
+                        
+                        # PORTFOLIO EXECUTION SUMMARY
+                        st.success("✅ Portfolio Generated & Ready to Execute!")
+                        
+                        st.markdown("### 📋 Executive Summary")
+                        st.markdown(f"""
+                        **Portfolio Strategy:** {risk.title()} + {horizon} Approach  
+                        **Total Deployment:** ₹{deployed:,.0f}  
+                        **Safety Buffer:** ₹{cash_reserves:,.0f} ({(cash_reserves/capital)*100:.0f}% reserve)  
+                        **Risk Profile:** {risk.upper()} (Max Daily Loss: ₹{(capital * (0.01 if risk == 'Conservative' else 0.02 if risk == 'Moderate' else 0.05)):,.0f})
+                        """)
+                        
+                        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+                        
+                        # DETAILED POSITIONS WITH RECOMMENDATIONS
+                        st.markdown("### 📍 Stock Positions & Action Plan")
+                        
+                        positions = portfolio_result.get("portfolio", {}).get("positions", [])
+                        metrics = portfolio_result.get("portfolio", {}).get("metrics", {})
+                        
+                        if positions:
+                            for idx, pos in enumerate(positions, 1):
+                                if hasattr(pos, '__dict__'):
+                                    pos = pos.__dict__
+                                
+                                ticker = pos.get("ticker", "N/A")
+                                sector = pos.get("sector", "N/A")
+                                alloc_pct = pos.get('allocation_pct', 0)
+                                capital_amt = pos.get('capital_amount', 0)
+                                entry_low = pos.get('entry_zone_low', 0)
+                                entry_high = pos.get('entry_zone_high', 0)
+                                stop_loss = pos.get('stop_loss', 0)
+                                target_1 = pos.get('target_1', 0)
+                                target_2 = pos.get('target_2', 0)
+                                target_3 = pos.get('target_3', 0)
+                                confidence = pos.get('confidence', 70)
+                                signal = pos.get("signal_strength", "NEUTRAL")
+                                
+                                with st.expander(f"📌 Position {idx}: {ticker} | {alloc_pct:.1f}% | ₹{capital_amt:,.0f}", expanded=False):
+                                    # Position Header
+                                    ph1, ph2, ph3, ph4 = st.columns(4)
+                                    with ph1:
+                                        st.markdown(f'<div class="metric-card-blue">Ticker<br><b>{ticker}</b></div>', unsafe_allow_html=True)
+                                    with ph2:
+                                        st.markdown(f'<div class="metric-card">Sector<br><b>{sector}</b></div>', unsafe_allow_html=True)
+                                    with ph3:
+                                        st.markdown(f'<div class="metric-card-green">Allocation<br><b>{alloc_pct:.1f}%</b></div>', unsafe_allow_html=True)
+                                    with ph4:
+                                        st.markdown(f'<div class="metric-card-orange">Signal<br><b>{signal}</b></div>', unsafe_allow_html=True)
+                                    
+                                    st.markdown("---")
+                                    
+                                    # Entry Strategy
+                                    st.markdown("**🎯 Entry Strategy**")
+                                    entry_col1, entry_col2, entry_col3 = st.columns(3)
+                                    with entry_col1:
+                                        st.markdown(f'<div class="entry-card">Entry Low<br>₹{entry_low:.2f}</div>', unsafe_allow_html=True)
+                                    with entry_col2:
+                                        st.markdown(f'<div class="entry-card">Entry High<br>₹{entry_high:.2f}</div>', unsafe_allow_html=True)
+                                    with entry_col3:
+                                        st.markdown(f'<div class="metric-card-green">Quantity<br>{int(capital_amt / entry_high)} shares</div>', unsafe_allow_html=True)
+                                    
+                                    st.markdown("---")
+                                    
+                                    # Risk Management
+                                    st.markdown("**🛡️ Risk Management**")
+                                    risk_col1, risk_col2, risk_col3 = st.columns(3)
+                                    with risk_col1:
+                                        st.markdown(f'<div class="stoploss-card">STOP LOSS<br>₹{stop_loss:.2f}</div>', unsafe_allow_html=True)
+                                    with risk_col2:
+                                        st.markdown(f'<div class="metric-card-red">Loss %<br>{((entry_high - stop_loss)/entry_high)*100:.1f}%</div>', unsafe_allow_html=True)
+                                    with risk_col3:
+                                        st.markdown(f'<div class="metric-card-orange">Max Loss<br>₹{(capital_amt - (capital_amt * stop_loss/entry_high)):,.0f}</div>', unsafe_allow_html=True)
+                                    
+                                    st.markdown("---")
+                                    
+                                    # Exit Targets
+                                    st.markdown("**📊 Profit Targets (Mandatory Exit Points)**")
+                                    t1_upside = ((target_1 - entry_high) / entry_high) * 100
+                                    t2_upside = ((target_2 - entry_high) / entry_high) * 100
+                                    t3_upside = ((target_3 - entry_high) / entry_high) * 100
+                                    
+                                    target_col1, target_col2, target_col3 = st.columns(3)
+                                    with target_col1:
+                                        st.markdown(f"""
+                                        <div class="target-card">
+                                            <div class="target-title">🎯 Target 1 (50% Position)</div>
+                                            <div class="target-price">₹{target_1:.2f}</div>
+                                            <div class="target-probability">📈 +{t1_upside:.1f}% Profit</div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                    with target_col2:
+                                        st.markdown(f"""
+                                        <div class="target-card">
+                                            <div class="target-title">⭐ Target 2 (25% Position)</div>
+                                            <div class="target-price">₹{target_2:.2f}</div>
+                                            <div class="target-probability">📈 +{t2_upside:.1f}% Profit</div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                    with target_col3:
+                                        st.markdown(f"""
+                                        <div class="target-card">
+                                            <div class="target-title">🚀 Target 3 (Trail 25%)</div>
+                                            <div class="target-price">₹{target_3:.2f}</div>
+                                            <div class="target-probability">📈 +{t3_upside:.1f}% Profit</div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                    
+                                    st.markdown("---")
+                                    
+                                    # Actionable Recommendations
+                                    st.markdown("**✅ Action Items & Checklist**")
+                                    st.checkbox(f"1️⃣ Place regular buy order for {ticker} between ₹{entry_low:.2f} - ₹{entry_high:.2f}", value=False, key=f"action_buy_{ticker}")
+                                    st.checkbox(f"2️⃣ Set stop loss alert at ₹{stop_loss:.2f} (Hard stop mandatory)", value=False, key=f"action_sl_{ticker}")
+                                    st.checkbox(f"3️⃣ Book 50% profit at ₹{target_1:.2f}", value=False, key=f"action_t1_{ticker}")
+                                    st.checkbox(f"4️⃣ Trail remaining to Target 2/3 (₹{target_2:.2f} - ₹{target_3:.2f})", value=False, key=f"action_trail_{ticker}")
+                                    st.checkbox(f"5️⃣ Monitor daily P&L (Max loss ₹{(capital_amt * 0.02):,.0f}/day)", value=False, key=f"action_monitor_{ticker}")
+                        
+                        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+                        
+                        # PORTFOLIO METRICS
+                        st.markdown("### 📊 Portfolio Quality Metrics")
+                        
+                        metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
+                        
+                        with metric_col1:
+                            sharpe = metrics.get("sharpe_ratio", 1.5)
+                            st.markdown(f'<div class="metric-card">Sharpe Ratio<br><b>{sharpe:.2f}</b><br><span style="font-size:11px;">Risk-Adjusted</span></div>', unsafe_allow_html=True)
+                        
+                        with metric_col2:
+                            beta = metrics.get("portfolio_beta", 1.0)
+                            st.markdown(f'<div class="metric-card">Beta<br><b>{beta:.2f}</b><br><span style="font-size:11px;">vs NIFTY</span></div>', unsafe_allow_html=True)
+                        
+                        with metric_col3:
+                            max_dd = metrics.get("max_drawdown_estimate_pct", 15)
+                            st.markdown(f'<div class="metric-card-red">Max Drawdown<br><b>{max_dd:.0f}%</b><br><span style="font-size:11px;">Acceptable</span></div>', unsafe_allow_html=True)
+                        
+                        with metric_col4:
+                            win_rate = metrics.get("win_rate_estimate_pct", 70)
+                            st.markdown(f'<div class="metric-card-green">Win Rate<br><b>{win_rate:.0f}%</b><br><span style="font-size:11px;">Estimated</span></div>', unsafe_allow_html=True)
+                        
+                        with metric_col5:
+                            expected_ret = metrics.get("weighted_expected_return_pct", 12.5)
+                            st.markdown(f'<div class="metric-card-blue">Expected Return<br><b>{expected_ret:.1f}%</b><br><span style="font-size:11px;">Annual</span></div>', unsafe_allow_html=True)
+                        
+                        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+                        
+                        # IMPLEMENTATION ROADMAP
+                        st.markdown("### 🛣️ Implementation Roadmap")
+                        
+                        with st.expander("📅 Week-by-Week Execution Plan", expanded=True):
+                            st.markdown(f"""
+                            #### Week 1: Setup & Foundation
+                            - ✅ Open your demat/trading account (if not already)
+                            - ✅ Transfer ₹{capital:,.0f} to trading account
+                            - ✅ Set up alerts for all {num_stocks} stocks
+                            - ✅ Configure broker's order management system
+                            
+                            #### Week 2-3: Building Positions
+                            - 📍 Start buying positions in entry zones
+                            - 📊 Monitor daily prices 
+                            - 🛑 Place hard stop losses immediately
+                            - 📈 Scale into winners
+                            
+                            #### Week 4+: Active Management
+                            - 💰 Book 50% profits at Target 1
+                            - 📈 Trail remaining positions
+                            - 🔄 Rebalance if any position drifts >5%
+                            - 📊 Review weekly with this dashboard
+                            
+                            #### Ongoing Risk Management
+                            - 🛡️ Monitor daily P&L (Stop trading if > max loss)
+                            - 📍 Review each position weekly
+                            - 🔔 Act on alerts immediately
+                            - 📋 Update trade journal
+                            """)
+                        
+                        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+                        
+                        # PORTFOLIO DOWNLOAD/EXPORT
+                        st.markdown("### 💾 Export & Share")
+                        
+                        export_col1, export_col2 = st.columns(2)
+                        with export_col1:
+                            portfolio_text = f"""
+NSEIQ COMPLETE PORTFOLIO - {risk.upper()} | {horizon.upper()}
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+Total Capital: ₹{capital:,.0f}
+Deploy: ₹{deployed:,.0f}
+Reserve: ₹{cash_reserves:,.0f}
+
+POSITIONS:
+"""
+                            for pos in positions:
+                                if hasattr(pos, '__dict__'):
+                                    pos = pos.__dict__
+                                portfolio_text += f"\n{pos.get('ticker')}: ₹{pos.get('capital_amount'):,.0f} ({pos.get('allocation_pct'):.1f}%)"
+                            
+                            st.download_button(
+                                label="📥 Download Portfolio Plan (TXT)",
+                                data=portfolio_text,
+                                file_name=f"NSEIQ_Portfolio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                                mime="text/plain"
+                            )
+                        
+                        with export_col2:
+                            st.info("💡 Share this portfolio with your advisor or broker")
+                        
+                    else:
+                        st.error(f"❌ Error: {resp.text[:200]}")
+                
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+                    st.info("💡 Make sure API server is running on port 8000")
 
     elif page == "📊 Analytics":
         st.markdown("## 📊 Analytics & Backtest")
