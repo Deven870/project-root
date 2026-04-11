@@ -5,7 +5,7 @@ import redis
 import json
 import logging
 from typing import Any, Optional
-from app.config import REDIS_HOST, REDIS_PORT, REDIS_DB
+from ..config import REDIS_HOST, REDIS_PORT, REDIS_DB
 
 logger = logging.getLogger(__name__)
 

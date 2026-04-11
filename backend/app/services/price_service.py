@@ -6,12 +6,12 @@ import asyncio
 from datetime import datetime
 from typing import Optional, Dict
 import logging
-from app.config import (
+from ..config import (
     ALPHA_VANTAGE_KEY, 
     PRICE_CACHE_TTL,
     NIFTY_50_STOCKS
 )
-from app.services.cache_service import cache
+from .cache_service import cache
 
 logger = logging.getLogger(__name__)
 
