@@ -421,7 +421,8 @@ def main():
         page = st.radio(
             "Select Page",
             [
-                "🔮 Smart Prediction",
+                "� Live Feed",
+                "�🔮 Smart Prediction",
                 "🏠 Live Dashboard",
                 "💼 Portfolio Builder",
                 "📊 Analytics",
@@ -432,10 +433,18 @@ def main():
         )
 
     # ════════════════════════════════════════════════════════════════════════
+    # PAGE 0: LIVE FEED (New!)
+    # ════════════════════════════════════════════════════════════════════════
+
+    if page == "🔴 Live Feed":
+        from backend.app.services.dashboard_live_feed import run_live_feed_dashboard
+        run_live_feed_dashboard()
+
+    # ════════════════════════════════════════════════════════════════════════
     # PAGE 1: SMART PREDICTION (Main Focus)
     # ════════════════════════════════════════════════════════════════════════
 
-    if page == "🔮 Smart Prediction":
+    elif page == "🔮 Smart Prediction":
         st.markdown("## 🎯 Smart Prediction Engine")
         st.markdown("**6-Layer Analysis:** Technical | Fundamental | Sentiment | Macro | Options | Insider")
 
@@ -732,7 +741,6 @@ def main():
     # ════════════════════════════════════════════════════════════════════════
 
     elif page == "🏠 Live Dashboard":
-        st.markdown("## 📊 Live Market Dashboard")
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
