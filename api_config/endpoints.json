@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "created": "2026-04-11",
+  "environment": "development",
+  "api_servers": {
+    "primary": {
+      "host": "localhost",
+      "port": 8000,
+      "protocol": "http",
+      "base_url": "http://localhost:8000"
+    },
+    "backup": {
+      "host": "localhost",
+      "port": 8001,
+      "protocol": "http",
+      "base_url": "http://localhost:8001"
+    }
+  },
+  "endpoints": {
+    "health": {
+      "method": "GET",
+      "path": "/api/v1/health",
+      "description": "Health check endpoint"
+    },
+    "predict_signal": {
+      "method": "POST",
+      "path": "/api/v1/predict/signal",
+      "description": "Get trading signal for stock",
+      "params": ["symbol", "timeframe"]
+    },
+    "historical_data": {
+      "method": "GET",
+      "path": "/api/v1/data/historical",
+      "description": "Get historical OHLCV data",
+      "params": ["symbol", "start_date", "end_date", "interval"]
+    },
+    "train_model": {
+      "method": "POST",
+      "path": "/api/v1/train",
+      "description": "Trigger model training",
+      "params": ["model_name", "dataset"]
+    },
+    "get_models": {
+      "method": "GET",
+      "path": "/api/v1/models",
+      "description": "List all trained models"
+    },
+    "evaluate_model": {
+      "method": "POST",
+      "path": "/api/v1/evaluate",
+      "description": "Evaluate model performance",
+      "params": ["model_name", "test_data"]
+    }
+  },
+  "data_sources": {
+    "market_data": {
+      "primary": "yfinance",
+      "secondary": "nse_api",
+      "timeout": 30
+    },
+    "economic_data": {
+      "provider": "fred",
+      "timeout": 30
+    }
+  }
+}
