@@ -292,12 +292,136 @@ except ImportError as e:
     logger.error(f"⚠️  Failed to import NSEIQ router: {e}")
 
 # ═════════════════════════════════════════════════════════════════════════════
+# TRADING BOT ENDPOINTS
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Global bot instance (initialized on startup)
+_bot_instance = None
+
+def get_trading_bot():
+    """Get global trading bot instance"""
+    global _bot_instance
+    if _bot_instance is None:
+        raise RuntimeError("Trading bot not initialized. Check server startup logs.")
+    return _bot_instance
+
+
+@app.get("/api/v1/bot/status")
+async def bot_status():
+    """Get trading bot current status"""
+    try:
+        bot = get_trading_bot()
+        return bot.get_bot_status()
+    except Exception as e:
+        logger.error(f"❌ Error getting bot status: {e}")
+        return {"error": str(e), "status": "error"}
+
+
+@app.get("/api/v1/bot/positions")
+async def bot_open_positions():
+    """Get all open positions"""
+    try:
+        bot = get_trading_bot()
+        positions = bot.get_positions()
+        
+        return {
+            "total_open": len(positions),
+            "capital_deployed": sum(p.get("entry_value", 0) for p in positions),
+            "capital_available": bot.account.get_available_capital(),
+            "positions": positions
+        }
+    except Exception as e:
+        logger.error(f"❌ Error getting positions: {e}")
+        return {"error": str(e)}
+
+
+@app.get("/api/v1/bot/trades")
+async def bot_trade_history(limit: int = 50, offset: int = 0, status: str = "ALL"):
+    """Get trade history"""
+    try:
+        bot = get_trading_bot()
+        trades = bot.account.get_trade_history(limit, offset)
+        
+        # Filter by status if needed
+        if status != "ALL":
+            trades = [t for t in trades if t.get("status") == status]
+        
+        return {
+            "total_trades": len(trades),
+            "trades": trades
+        }
+    except Exception as e:
+        logger.error(f"❌ Error getting trade history: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/api/v1/bot/positions/{position_id}/close")
+async def close_position(position_id: str, exit_price: float = None, reason: str = "MANUAL"):
+    """Manually close a position"""
+    try:
+        bot = get_trading_bot()
+        result = bot.close_position(position_id, exit_price, reason)
+        
+        return {
+            "success": True,
+            "position_id": position_id,
+            "result": result
+        }
+    except Exception as e:
+        logger.error(f"❌ Error closing position: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.get("/api/v1/bot/account/stats")
+async def bot_account_stats():
+    """Get comprehensive account statistics"""
+    try:
+        bot = get_trading_bot()
+        stats = bot.account.get_account_stats()
+        
+        return {
+            **stats,
+            "risk_manager": {
+                "daily_loss_limit": bot.risk_manager.daily_loss_limit,
+                "risk_per_trade": bot.risk_manager.risk_per_trade_pct,
+                "max_positions": bot.risk_manager.max_positions,
+                "current_daily_loss": bot.account.get_daily_loss()
+            }
+        }
+    except Exception as e:
+        logger.error(f"❌ Error getting account stats: {e}")
+        return {"error": str(e)}
+
+
+@app.get("/api/v1/bot/export/{format}")
+async def export_bot_data(format: str = "json"):
+    """Export bot data to CSV or JSON"""
+    try:
+        bot = get_trading_bot()
+        
+        if format.lower() == "csv":
+            return {"data": bot.account.get_trades_csv(), "format": "csv"}
+        elif format.lower() == "json":
+            return bot.account.get_account_stats()
+        else:
+            return {"error": "Invalid format. Use 'csv' or 'json'"}
+    except Exception as e:
+        logger.error(f"❌ Error exporting data: {e}")
+        return {"error": str(e)}
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # STARTUP & SHUTDOWN EVENTS
 # ═════════════════════════════════════════════════════════════════════════════
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
+    global _bot_instance
+    
     logger.info("🔌 NSEIQ API Server Starting...")
     logger.info(f"📊 {APP_NAME} v{APP_VERSION}")
     
@@ -320,6 +444,15 @@ async def startup_event():
     except Exception as e:
         logger.error(f"⚠️  Failed to start live prediction service: {e}")
         logger.info("⏸️  Continuing with API-only mode (manual predictions)")
+    
+    # Initialize trading bot (optional - only if you want auto-start)
+    # Uncomment the following to auto-start bot on server startup:
+    # try:
+    #     from .services.trading_bot import create_trading_bot, get_trading_bot
+    #     _bot_instance = create_trading_bot()
+    #     logger.info("🤖 Trading Bot initialized")
+    # except Exception as e:
+    #     logger.warning(f"⚠️  Trading bot not initialized (will run separately): {e}")
     
     logger.info("✅ All services initialized")
 

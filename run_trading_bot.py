@@ -9,6 +9,15 @@ import asyncio
 import sys
 import logging
 from datetime import datetime
+import os
+import io
+
+# Fix UTF-8 encoding on Windows
+if sys.platform == 'win32':
+    # Wrap stdout with UTF-8 encoding
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Configure logging
 logging.basicConfig(
@@ -16,7 +25,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(f"trading_bot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        logging.FileHandler(f"trading_bot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log", encoding='utf-8')
     ]
 )
 logger = logging.getLogger(__name__)
