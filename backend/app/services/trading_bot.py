@@ -16,6 +16,7 @@ from enum import Enum
 
 from .paper_trading_engine import create_paper_trading_account, get_paper_trading_account
 from .risk_manager import create_risk_manager
+from .trading_bot_sheets_logger import get_trading_bot_sheets_logger
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,9 @@ class TradingBot:
             daily_loss_limit,
             max_positions
         )
+        
+        # Initialize Google Sheets logger
+        self.sheets_logger = get_trading_bot_sheets_logger()
         
         # Statistics
         self.signals_received = 0
@@ -143,8 +147,8 @@ class TradingBot:
             if confidence < self.min_confidence:
                 continue
             
-            # Check signal
-            signal = pred.get('signal', '')
+            # Check signal (handle both "STRONG_BUY" and "STRONG BUY" formats)
+            signal = pred.get('signal', '').upper().replace('_', ' ')
             if self.signal_filter == "STRONG_BUY" and signal != "STRONG BUY":
                 continue
             elif self.signal_filter == "BUY" and signal not in ["STRONG BUY", "BUY"]:
@@ -181,6 +185,31 @@ class TradingBot:
                     self.trades_closed += 1
                     self.daily_pnl += pnl
                     logger.info(f"📊 {msg}")
+                    
+                    # Log closed trade to Google Sheets
+                    if stock in self.account.trades_history[-1:]:  # Get last trade
+                        last_trade = self.account.trades_history[-1]
+                        return_pct = (pnl / last_trade.get('entry_capital', 1)) * 100 if last_trade.get('entry_capital', 0) > 0 else 0
+                        
+                        close_data = {
+                            "timestamp": datetime.now().isoformat(),
+                            "symbol": stock,
+                            "signal": "CLOSED",
+                            "confidence": last_trade.get('confidence', 0),
+                            "entry_price": last_trade.get('entry_price', 0),
+                            "target_price": last_trade.get('target_price', 0),
+                            "stop_loss": last_trade.get('stop_loss', 0),
+                            "quantity": last_trade.get('quantity', 0),
+                            "capital_used": last_trade.get('entry_capital', 0),
+                            "risk_amount": last_trade.get('entry_capital', 0) * 0.08,
+                            "risk_reward_ratio": 0,
+                            "status": "CLOSED",
+                            "exit_price": exit_price,
+                            "pnl": pnl,
+                            "return_pct": return_pct
+                        }
+                        
+                        asyncio.create_task(self.sheets_logger.log_trade(close_data))
     
     async def process_signal(self, stock: str, prediction: Dict):
         """Process a buy signal"""
@@ -232,6 +261,30 @@ class TradingBot:
                 logger.info(f"✅ {msg}")
                 logger.info(f"   Entry: ₹{entry_price:.2f} | Target: ₹{target_price:.2f} | SL: ₹{stop_loss:.2f}")
                 logger.info(f"   Qty: {qty} | Capital: ₹{capital:,.0f}")
+                
+                # Log trade to Google Sheets
+                risk_amount = capital * 0.08  # 8% risk
+                risk_reward = (target_price - entry_price) / (entry_price - stop_loss) if (entry_price - stop_loss) > 0 else 0
+                
+                trade_data = {
+                    "timestamp": datetime.now().isoformat(),
+                    "symbol": stock,
+                    "signal": prediction.get('signal', 'STRONG_BUY'),
+                    "confidence": confidence,
+                    "entry_price": entry_price,
+                    "target_price": target_price,
+                    "stop_loss": stop_loss,
+                    "quantity": qty,
+                    "capital_used": capital,
+                    "risk_amount": risk_amount,
+                    "risk_reward_ratio": risk_reward,
+                    "status": "OPEN",
+                    "exit_price": 0,
+                    "pnl": 0,
+                    "return_pct": 0
+                }
+                
+                asyncio.create_task(self.sheets_logger.log_trade(trade_data))
             
         except Exception as e:
             logger.error(f"❌ Error processing {stock} signal: {e}")

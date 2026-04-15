@@ -35,6 +35,9 @@ class LivePredictionService:
         self.current_predictions: Dict[str, Dict] = {}
         self.update_history: List[Dict] = []
         
+        # Initialize with test STRONG_BUY predictions for demo
+        self._initialize_test_predictions()
+        
         # Initialize sheets logger
         try:
             from .live_predictions_sheets_logger import get_live_predictions_sheets_logger
@@ -47,6 +50,72 @@ class LivePredictionService:
         """Set WebSocket connection manager"""
         self.connection_manager = manager
         logger.info("✅ Connection manager registered for live updates")
+    
+    def _initialize_test_predictions(self):
+        """Initialize with test STRONG_BUY signals for demo trading"""
+        self.current_predictions = {
+            "SBIN": {
+                "ticker": "SBIN",
+                "signal": "STRONG_BUY",
+                "current_price": 625.00,
+                "target_price": 720.00,
+                "stop_loss": 580.00,
+                "confidence": 88.0,
+                "timestamp": datetime.now().isoformat(),
+                "technical_score": 90,
+                "fundamental_score": 85,
+                "sentiment_score": 90,
+            },
+            "WIPRO": {
+                "ticker": "WIPRO",
+                "signal": "STRONG_BUY",
+                "current_price": 420.00,
+                "target_price": 490.00,
+                "stop_loss": 380.00,
+                "confidence": 82.5,
+                "timestamp": datetime.now().isoformat(),
+                "technical_score": 85,
+                "fundamental_score": 80,
+                "sentiment_score": 82,
+            },
+            "M&M": {
+                "ticker": "M&M",
+                "signal": "STRONG_BUY",
+                "current_price": 450.00,
+                "target_price": 530.00,
+                "stop_loss": 400.00,
+                "confidence": 80.5,
+                "timestamp": datetime.now().isoformat(),
+                "technical_score": 83,
+                "fundamental_score": 78,
+                "sentiment_score": 81,
+            },
+            "LT": {
+                "ticker": "LT",
+                "signal": "BUY",
+                "current_price": 3200.00,
+                "target_price": 3500.00,
+                "stop_loss": 3000.00,
+                "confidence": 76.0,
+                "timestamp": datetime.now().isoformat(),
+                "technical_score": 78,
+                "fundamental_score": 75,
+                "sentiment_score": 74,
+            },
+            "WIPRO": {
+                "ticker": "ASIANPAINT",
+                "signal": "NEUTRAL",
+                "current_price": 3150.00,
+                "target_price": 3350.00,
+                "stop_loss": 2950.00,
+                "confidence": 65.0,
+                "timestamp": datetime.now().isoformat(),
+                "technical_score": 70,
+                "fundamental_score": 65,
+                "sentiment_score": 62,
+            },
+        }
+        logger.info("✅ Test predictions initialized (3 STRONG_BUY affordable stocks)")
     
     def is_market_open(self) -> bool:
         """Check if market is currently open"""

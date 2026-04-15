@@ -424,7 +424,8 @@ def main():
                 "� Live Feed",
                 "�🔮 Smart Prediction",
                 "🏠 Live Dashboard",
-                "💼 Portfolio Builder",
+                "� Stock Analyzer",
+                "�💼 Portfolio Builder",
                 "📊 Analytics",
                 "📈 Trade Journal",
                 "⚙️ Admin"
@@ -735,6 +736,14 @@ def main():
         else:
             if not st.session_state.last_prediction:
                 st.info("👆 Select a stock and click 'GENERATE PREDICTION' to see analysis")
+
+    # ════════════════════════════════════════════════════════════════════════
+    # PAGE 2: STOCK ANALYZER
+    # ════════════════════════════════════════════════════════════════════════
+
+    elif page == "📊 Stock Analyzer":
+        from backend.app.services.stock_analyzer import run_stock_analyzer
+        run_stock_analyzer()
 
     # ════════════════════════════════════════════════════════════════════════
     # OTHER PAGES
