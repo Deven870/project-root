@@ -1,0 +1,52 @@
+{
+  "status": {
+    "state": "RUNNING",
+    "uptime_seconds": 3600,
+    "trades_executed": 1,
+    "positions_open": 1,
+    "last_signal_time": "2026-04-15T12:17:49.124226"
+  },
+  "account": {
+    "initial_capital": 300000,
+    "current_capital": 300000,
+    "deployed_capital": 0,
+    "available_capital": 300000,
+    "total_pnl": 0,
+    "pnl_percent": 0
+  },
+  "positions": [
+    {
+      "ticker": "M&M",
+      "quantity": 480,
+      "entry_price": 450,
+      "entry_value": 216000,
+      "current_price": 450,
+      "current_value": 216000,
+      "pnl": 0,
+      "pnl_percent": 0,
+      "target_price": 530,
+      "stop_loss": 400,
+      "entry_time": "2026-04-15 11:56:00",
+      "status": "OPEN"
+    }
+  ],
+  "trades": [
+    {
+      "trade_id": "BOT_20260415_001",
+      "ticker": "M&M",
+      "type": "BUY",
+      "quantity": 480,
+      "entry_price": 450,
+      "entry_value": 216000,
+      "exit_price": null,
+      "exit_value": null,
+      "pnl": null,
+      "pnl_percent": null,
+      "entry_time": "2026-04-15 11:56:00",
+      "exit_time": null,
+      "status": "OPEN",
+      "signal": "STRONG_BUY",
+      "confidence": 80.5
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+Timestamp,Trade ID,Ticker,Type,Quantity,Entry Price,Entry Value,Exit Price,Exit Value,P&L,P&L %,Entry Time,Exit Time,Status,Signal,Confidence
+2026-04-15T12:17:49.140640,BOT_20260415_001,M&M,BUY,480,450,216000,,,,,2026-04-15 11:56:00,,OPEN,STRONG_BUY,80.5
